@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RamTrace — Diagnóstico y monitoreo de memoria RAM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Video de fondo tecnológico con capa oscura -->
+  <video id="bg-video" class="bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+    <source src="../assets/14203516_3840_2160_25fps.mp4" type="video/mp4">
+    <source src="../assets/bg-video.mp4" type="video/mp4">
+  </video>
+
+  <div class="app">
+    <!-- Menú lateral de navegación -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon logo-frame">
+          <img src="../assets/logo.png" alt="Logo oficial de RamTrace" id="main-logo">
+        </div>
+        <strong>Ram<span>Trace</span></strong>
+      </div>
+
+      <nav class="nav" aria-label="Navegación principal">
+        <button class="active" data-page="inicio"><span class="ico">⌂</span> Panel principal</button>
+        <button data-page="memoria"><span class="ico">▦</span> Memoria RAM</button>
+        <button data-page="modulos"><span class="ico">▤</span> Módulos</button>
+        <button data-page="monitoreo"><span class="ico">⌁</span> Monitoreo</button>
+        <button data-page="diagnostico"><span class="ico">⛨</span> Diagnóstico</button>
+        <button data-page="reportes"><span class="ico">▧</span> Reportes</button>
+        <button data-page="configuracion"><span class="ico">⚙</span> Configuración</button>
+        <button data-page="acerca"><span class="ico">ⓘ</span> Acerca de</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="mini-card">
+          <small>MONITOREO DE MEMORIA</small>
+          <h3 id="sidebar-system-status"><span class="positive">●</span> Sistema listo</h3>
+          <p id="sidebar-system-note">Conectado a Windows API en tiempo real.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main>
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">MONITOREA · ANALIZA · PROTEGE</div>
+          <h1 id="page-title">Estado de memoria</h1>
+          <p id="page-subtitle">Una visión clara del rendimiento de la RAM de tu equipo.</p>
+        </div>
+        <div class="top-actions">
+          <div class="device" role="status" aria-live="polite">▣ &nbsp; Equipo: <strong id="top-device-name">Consultando...</strong></div>
+          <div class="avatar" id="user-avatar" title="RamTrace Desktop" aria-label="RamTrace">RT</div>
+        </div>
+      </header>
+
+      <!-- SECCIÓN A: Panel principal -->
+      <section class="page active" id="inicio">
+        <div class="grid home-top-grid">
+          <div class="home-metrics">
+            <article class="card">
+              <div class="metric-top"><span class="metric-icon blue">▦</span> RAM instalada</div>
+              <div class="metric-value" id="main-installed-ram">-- GB</div>
+              <div class="metric-foot">Capacidad física detectada</div>
+            </article>
+            <article class="card">
+              <div class="metric-top"><span class="metric-icon">▰</span> Memoria utilizable</div>
+              <div class="metric-value" id="main-usable-ram">-- GB</div>
+              <div class="metric-foot">Reconocida por Windows</div>
+            </article>
+            <article class="card">
+              <div class="metric-top"><span class="metric-icon pink">⌁</span> En uso</div>
+              <div class="metric-value" id="used-main">-- GB</div>
+              <div class="metric-foot">Memoria utilizada actualmente</div>
+            </article>
+            <article class="card">
+              <div class="metric-top"><span class="metric-icon green">◔</span> Disponible</div>
+              <div class="metric-value" id="free-main">-- GB</div>
+              <div class="metric-foot">Disponible para el sistema</div>
+            </article>
+          </div>
+          <article class="card home-gauge-card">
+            <div class="card-title">
+              <h2>Tacómetro RAM</h2>
+              <span id="home-gauge-level-pill" class="status">✓ Normal</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg gauge-svg-lg" viewBox="0 0 200 120" role="img" aria-label="Tacómetro semicircular de uso de RAM">
+                <defs>
+                  <linearGradient id="home-gauge-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#4f9bff" />
+                    <stop offset="50%" stop-color="#a15cff" />
+                    <stop offset="100%" stop-color="#ff4fd8" />
+                  </linearGradient>
+                </defs>
+                <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100" />
+                <path class="gauge-arc home-gauge-arc" id="home-gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                <line class="gauge-needle home-gauge-needle" id="home-gauge-needle" x1="100" y1="100" x2="100" y2="28" />
+                <circle class="gauge-center" cx="100" cy="100" r="6" />
+              </svg>
+              <div class="gauge-readout">
+                <div class="gauge-percent" id="home-gauge-percent">--%</div>
+                <div class="gauge-label">Utilización</div>
+              </div>
+            </div>
+            <div class="gauge-stats">
+              <div class="gauge-stat"><small>Instalada</small><strong id="home-gauge-installed">-- GB</strong></div>
+              <div class="gauge-stat"><small>Usada</small><strong id="home-gauge-used">-- GB</strong></div>
+              <div class="gauge-stat"><small>Disponible</small><strong id="home-gauge-free">-- GB</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="grid content-grid">
+          <div>
+            <article class="card">
+              <div class="card-title">
+                <div>
+                  <h2>⌁ &nbsp; Uso de RAM en tiempo real</h2>
+                  <p id="chart-subtitle">Medición real de Windows · últimas 60 muestras</p>
+                </div>
+                <span class="chip" id="monitor-label">Activo</span>
+              </div>
+              <div class="chart-wrap"><canvas id="chart"></canvas></div>
+              <div class="legend">
+                <span><i class="dot"></i>Utilización de RAM (%)</span>
+                <span id="last-value">Último valor: --%</span>
+              </div>
+            </article>
+
+            <article class="card table-card">
+              <div class="card-title">
+                <h2>▤ &nbsp; Módulos de memoria</h2>
+                <button class="btn" data-goto="modulos">Ver módulos →</button>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Módulo</th>
+                      <th>Capacidad</th>
+                      <th>Fabricante</th>
+                      <th>Tipo</th>
+                      <th>Velocidad</th>
+                    </tr>
+                  </thead>
+                  <tbody id="home-modules-tbody">
+                    <tr><td colspan="5" style="text-align:center;color:var(--muted)">Consultando módulos de memoria...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="card table-card">
+              <div class="card-title"><h2>✧ &nbsp; Información y recomendaciones</h2></div>
+              <div class="recommend">
+                <div class="check">✓</div>
+                <div>
+                  <strong id="recommend-title">Utilización dentro del rango definido</strong>
+                  <p id="recommend-text">El consumo actual es moderado. Revisa las tendencias si notas lentitud.</p>
+                </div>
+              </div>
+              <ul class="bullets">
+                <li>Mantén Windows y los controladores actualizados.</li>
+                <li>Revisa las aplicaciones que consumen más memoria.</li>
+                <li>Si sospechas fallos físicos, ejecuta una prueba específica de memoria.</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="side-stack">
+            <article class="card">
+              <div class="card-title"><h2>⛨ &nbsp; Diagnóstico</h2></div>
+              <div class="notice">
+                <b>⚠ Importante</b>
+                El monitoreo del uso de memoria no permite detectar por sí solo fallos físicos en la RAM.
+              </div>
+              <button class="btn primary full" data-goto="diagnostico">Ver instrucciones de prueba →</button>
+              <div style="height:10px"></div>
+              <button class="btn full" id="start-btn">▶ Iniciar monitoreo</button>
+              <button class="btn full" id="stop-btn">■ Detener monitoreo</button>
+              <button class="btn full" id="export-btn">⇩ Generar reporte TXT</button>
+            </article>
+
+            <article class="card">
+              <div class="card-title">
+                <h2>▧ &nbsp; Último reporte</h2>
+                <span class="chip">Listo</span>
+              </div>
+              <div class="report-row">
+                <div>Estado<small>Generador de reportes</small></div>
+                <span class="positive">● Operativo</span>
+              </div>
+              <div class="report-row">
+                <div>Formato<small>Texto o CSV</small></div>
+                <span>TXT / CSV</span>
+              </div>
+              <p class="empty-note">Exporta datos reales del sistema con observaciones de diagnóstico.</p>
+              <button class="btn full" data-goto="reportes">Abrir reportes →</button>
+            </article>
+          </div>
+        </div>
+
+        <p class="footer-note">Datos de memoria en tiempo real obtenidos directamente de la API de Windows.</p>
+      </section>
+
+      <!-- SECCIÓN B: Memoria RAM -->
+      <section class="page" id="memoria">
+        <div class="section-intro">
+          <h2>Información de memoria</h2>
+          <p>Resumen detallado de capacidad, asignación y utilización del equipo.</p>
+        </div>
+        <div class="grid metrics">
+          <article class="card">
+            <div class="metric-top"><span class="metric-icon blue">▦</span> RAM instalada</div>
+            <div class="metric-value" id="detail-installed-ram">-- GB</div>
+            <div class="metric-foot">Capacidad física de hardware</div>
+          </article>
+          <article class="card">
+            <div class="metric-top"><span class="metric-icon">▰</span> Utilizable por Windows</div>
+            <div class="metric-value" id="detail-usable-ram">-- GB</div>
+            <div class="metric-foot">Reconocida para el sistema</div>
+          </article>
+          <article class="card">
+            <div class="metric-top"><span class="metric-icon pink">⌁</span> En uso</div>
+            <div class="metric-value" id="used-memory">-- GB</div>
+            <div class="metric-foot">Memoria física en uso</div>
+          </article>
+          <article class="card">
+            <div class="metric-top"><span class="metric-icon green">◔</span> Disponible</div>
+            <div class="metric-value" id="free-memory">-- GB</div>
+            <div class="metric-foot">Para aplicaciones y caché</div>
+          </article>
+        </div>
+
+        <div class="grid ram-visual-grid">
+          <article class="card ram-3d-card">
+            <div class="card-title">
+              <h2>Módulo RAM RGB (predeterminado)</h2>
+              <span class="chip">Representación ilustrativa</span>
+            </div>
+            <div class="ram-video-scene" id="ram-video-scene" aria-label="Vídeo ilustrativo de módulo RAM RGB flotando">
+              <video id="ram-video" class="ram-video" autoplay muted loop playsinline preload="auto">
+                <source src="../assets/ram_rgb_flotando_3d.mp4" type="video/mp4">
+              </video>
+            </div>
+            <p class="empty-note">Predeterminado e ilustrativo. No corresponde al hardware real detectado.</p>
+          </article>
+
+          <article class="card">
+            <div class="card-title">
+              <h2>Tacómetro de uso de RAM</h2>
+              <span id="gauge-level-pill" class="status">✓ Normal</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 200 120" role="img" aria-label="Tacómetro semicircular de uso de RAM">
+                <defs>
+                  <linearGradient id="gauge-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#4f7cff" />
+                    <stop offset="60%" stop-color="#a15cff" />
+                    <stop offset="100%" stop-color="#ff5f86" />
+                  </linearGradient>
+                </defs>
+                <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100" />
+                <path class="gauge-arc" id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                <line class="gauge-needle" id="gauge-needle" x1="100" y1="100" x2="100" y2="28" />
+                <circle class="gauge-center" cx="100" cy="100" r="6" />
+              </svg>
+              <div class="gauge-readout">
+                <div class="gauge-percent" id="gauge-percent">--%</div>
+                <div class="gauge-label">Utilización</div>
+              </div>
+            </div>
+            <div class="gauge-stats">
+              <div class="gauge-stat"><small>Instalada</small><strong id="gauge-installed">-- GB</strong></div>
+              <div class="gauge-stat"><small>Usada</small><strong id="gauge-used">-- GB</strong></div>
+              <div class="gauge-stat"><small>Disponible</small><strong id="gauge-free">-- GB</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-title">
+            <h2>Utilización de memoria</h2>
+            <span id="memory-pct">--%</span>
+          </div>
+          <div class="progress"><span id="memory-bar"></span></div>
+          <div class="detail-grid" style="margin-top:18px">
+            <div class="detail"><small>Nombre del equipo</small><strong id="detail-pc-name">--</strong></div>
+            <div class="detail"><small>Sistema operativo</small><strong id="detail-os-name">--</strong></div>
+            <div class="detail"><small>Memoria reservada para hardware</small><strong id="detail-reserved-ram">-- GB</strong></div>
+            <div class="detail"><small>Memoria virtual comprometida</small><strong id="detail-virtual-ram">-- GB</strong></div>
+            <div class="detail"><small>Unidades mostradas</small><strong id="detail-units">GB</strong></div>
+            <div class="detail"><small>Origen de los valores</small><strong>Windows API / WMI (Real)</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <!-- SECCIÓN C: Módulos de memoria -->
+      <section class="page" id="modulos">
+        <div class="section-intro">
+          <h2>Módulos de memoria</h2>
+          <p>Detalles por módulo físico detectados en los zócalos de la placa base.</p>
+        </div>
+        <article class="card">
+          <div class="card-title">
+            <h2>▤ &nbsp; Módulos detectados por Windows</h2>
+            <span class="chip" id="modules-count-chip">Consultando...</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Módulo / Ranura</th>
+                  <th>Capacidad</th>
+                  <th>Fabricante</th>
+                  <th>Tipo</th>
+                  <th>Velocidad (MT/s)</th>
+                  <th>Número de parte</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="modules-full-tbody">
+                <tr><td colspan="7" style="text-align:center;color:var(--muted)">Consultando módulos de hardware...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="empty-note">Información consultada mediante Win32_PhysicalMemory. Si una propiedad no es reportada por el BIOS/fabricante, se indica como «No disponible».</p>
+        </article>
+      </section>
+
+      <!-- SECCIÓN D: Monitoreo -->
+      <section class="page" id="monitoreo">
+        <div class="section-intro">
+          <h2>Monitoreo en tiempo real</h2>
+          <p>Visualiza el comportamiento continuo de la memoria RAM con lecturas reales del sistema.</p>
+        </div>
+        <article class="card monitor-card monitor-wide">
+          <div class="card-title monitor-header">
+            <div>
+              <h2>Gráfica de utilización de RAM</h2>
+              <small style="color:var(--muted)">Porcentaje de utilización · Eje Y 0-100% · Eje X Hora · Unidades %</small>
+            </div>
+            <div class="monitor-controls">
+              <span class="chip" id="monitor-label-2">Activo</span>
+              <select id="monitor-interval-select" class="btn" style="padding:8px 10px">
+                <option value="1000">1 segundo</option>
+                <option value="2000" selected>2 segundos</option>
+                <option value="3000">3 segundos</option>
+                <option value="5000">5 segundos</option>
+              </select>
+              <button class="btn primary" id="start-btn-2">Iniciar</button>
+              <button class="btn" id="stop-btn-2">Detener</button>
+              <button class="btn" id="clear-chart-btn">Limpiar historial</button>
+            </div>
+          </div>
+          <div class="monitor-legend">
+            <span class="legend-item"><span class="legend-dot legend-violet"></span> Utilización RAM (%)</span>
+            <span class="legend-item">Actual: <strong id="monitor-legend-current">--%</strong></span>
+            <span class="legend-item">Máx: <strong id="monitor-legend-max">--%</strong></span>
+            <span class="legend-item">Promedio: <strong id="monitor-legend-avg">--%</strong></span>
+          </div>
+          <div class="chart-wrap monitor-chart-wrap">
+            <canvas id="chart2"></canvas>
+            <div class="chart-empty" id="chart-empty-state">Esperando mediciones…</div>
+            <div class="chart-error" id="chart-error-state" style="display:none">Fallo en lectura de memoria. Sin datos simulados.</div>
+          </div>
+          <div class="monitor-stats-row">
+            <div class="monitor-stat">
+              <small>Utilización actual</small>
+              <strong id="monitor-percent">--%</strong>
+            </div>
+            <div class="monitor-stat">
+              <small>Mínimo registrado</small>
+              <strong id="stat-min">--%</strong>
+            </div>
+            <div class="monitor-stat">
+              <small>Máximo registrado</small>
+              <strong id="stat-max">--%</strong>
+            </div>
+            <div class="monitor-stat">
+              <small>Promedio de muestras</small>
+              <strong id="stat-avg">--%</strong>
+            </div>
+            <div class="monitor-stat">
+              <small>Muestras en historial</small>
+              <strong id="stat-count">0 / 60</strong>
+            </div>
+          </div>
+          <div class="usage-head" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+            <strong>Utilización actual: <span id="monitor-percent-dup">--%</span></strong>
+            <span class="status" id="monitor-status">✓ Normal</span>
+          </div>
+          <div class="progress"><span id="monitor-bar"></span></div>
+          <p class="empty-note">Los datos se actualizan automáticamente mientras el monitoreo está activo.</p>
+        </article>
+      </section>
+
+      <!-- SECCIÓN E: Diagnóstico -->
+      <section class="page" id="diagnostico">
+        <div class="section-intro">
+          <h2>Diagnóstico de memoria</h2>
+          <p>Distingue el consumo temporal de posibles fallos físicos en el hardware y ejecuta pruebas oficiales.</p>
+        </div>
+        <article class="card">
+          <div class="recommend">
+            <div class="check">i</div>
+            <div>
+              <strong>Consumo de memoria no equivale a salud física</strong>
+              <p>Un porcentaje alto indica demanda de aplicaciones, pero no confirma fallos físicos en los circuitos integrados. Del mismo modo, un uso bajo no garantiza que la RAM esté libre de errores. Para investigarlos se requiere una prueba especializada.</p>
+            </div>
+          </div>
+
+          <h3>Herramienta oficial: Diagnóstico de memoria de Windows</h3>
+          <ol class="bullets">
+            <li>Guarda tus archivos abiertos y cierra las aplicaciones en ejecución.</li>
+            <li>Inicia la herramienta oficial <strong>mdsched.exe</strong> de Windows mediante el botón inferior o desde el menú Inicio.</li>
+            <li>Selecciona si deseas comprobar si existen problemas de inmediato (reiniciando el equipo) o en el próximo encendido.</li>
+            <li>El equipo arrancará en el entorno de prueba de memoria de Windows para ejecutar los patrones de lectura y escritura.</li>
+            <li>Al terminar y volver a Windows, registra el resultado en el campo de observaciones de esta pantalla.</li>
+          </ol>
+
+          <div class="notice">
+            <b>⚠ Importante sobre el reinicio</b>
+            RamTrace <strong>NUNCA</strong> reiniciará tu equipo sin tu consentimiento. La herramienta oficial de Windows te preguntará y tú decides el momento adecuado para ejecutar la prueba.
+          </div>
+
+          <div style="margin: 16px 0;">
+            <button class="btn primary" id="btn-launch-mdsched">⛨ Abrir Diagnóstico de memoria de Windows (mdsched.exe)</button>
+            <span id="mdsched-msg" style="margin-left: 10px; font-size: 12px; color: var(--muted);"></span>
+          </div>
+
+          <label for="test-result" style="display:block;margin:16px 0 7px;font-weight:600">Estado de la prueba de memoria</label>
+          <select id="test-result" class="btn" style="width:100%;text-align:left">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Realizada — sin errores informados">Realizada — sin errores informados</option>
+            <option value="Realizada — se informaron errores">Realizada — se informaron errores</option>
+            <option value="No realizada">No realizada</option>
+          </select>
+
+          <label for="observations" style="display:block;margin:14px 0 7px;font-weight:600">Observaciones y notas del diagnóstico</label>
+          <textarea id="observations" rows="4" placeholder="Escribe aquí los resultados de la prueba, síntomas observados o conclusiones..." style="width:100%;resize:vertical;background:#0b1326;color:white;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit"></textarea>
+
+          <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+            <button class="btn primary" id="save-observation">Guardar observación</button>
+            <span id="save-msg" class="empty-note" style="margin-top:0"></span>
+          </div>
+        </article>
+      </section>
+
+      <!-- SECCIÓN F: Reportes -->
+      <section class="page" id="reportes">
+        <div class="section-intro">
+          <h2>Centro de reportes</h2>
+          <p>Informes técnicos profesionales con datos reales del sistema, monitoreo y eventos.</p>
+        </div>
+
+        <div class="reports-grid">
+          <article class="card report-summary-card">
+            <div class="card-title">
+              <h2>Resumen del sistema</h2>
+              <span class="chip" id="report-device-chip">Equipo</span>
+            </div>
+            <div class="report-summary-grid">
+              <div class="summary-tile">
+                <small>RAM instalada</small>
+                <strong id="report-installed-ram">-- GB</strong>
+              </div>
+              <div class="summary-tile">
+                <small>RAM utilizable</small>
+                <strong id="report-usable-ram">-- GB</strong>
+              </div>
+              <div class="summary-tile">
+                <small>RAM en uso</small>
+                <strong id="report-used-ram">-- GB</strong>
+              </div>
+              <div class="summary-tile">
+                <small>RAM disponible</small>
+                <strong id="report-free-ram">-- GB</strong>
+              </div>
+              <div class="summary-tile summary-tile-wide">
+                <small>Utilización actual</small>
+                <div class="summary-tile-row">
+                  <strong id="report-percent">--%</strong>
+                  <span class="status" id="report-status-pill">Cargando…</span>
+                </div>
+              </div>
+              <div class="summary-tile">
+                <small>Fecha/Hora última medición</small>
+                <strong id="report-last-time">--</strong>
+              </div>
+            </div>
+            <div class="report-row">
+              <div>Prueba de memoria<small>Estado registrado</small></div>
+              <strong id="report-test">Pendiente</strong>
+            </div>
+          </article>
+
+          <article class="card report-export-card">
+            <div class="card-title">
+              <h2>Opciones de exportación</h2>
+            </div>
+            <div class="export-options">
+              <div class="export-option">
+                <div class="export-option-info">
+                  <div class="export-icon">📄</div>
+                  <div>
+                    <strong>Informe completo TXT</strong>
+                    <p>Diagnóstico legible con resumen, hardware, métricas, historial, eventos y recomendaciones.</p>
+                  </div>
+                </div>
+                <button class="btn primary" id="export-btn-2">Exportar TXT</button>
+              </div>
+              <div class="export-option">
+                <div class="export-option-info">
+                  <div class="export-icon">📊</div>
+                  <div>
+                    <strong>Historial de métricas CSV</strong>
+                    <p>Mediciones estructuradas para analizar en Excel.</p>
+                  </div>
+                </div>
+                <button class="btn" id="export-csv">Exportar CSV</button>
+              </div>
+              <div class="export-option">
+                <div class="export-option-info">
+                  <div class="export-icon">📝</div>
+                  <div>
+                    <strong>Registro de eventos CSV</strong>
+                    <p>Eventos, advertencias y errores registrados por RamTrace.</p>
+                  </div>
+                </div>
+                <button class="btn" id="export-log-csv">Exportar log</button>
+              </div>
+            </div>
+            <p id="export-status-msg" class="empty-note"></p>
+          </article>
+        </div>
+
+        <article class="card report-events-card">
+          <div class="card-title">
+            <div>
+              <h2>Registro de eventos</h2>
+              <p style="margin:4px 0 0;color:var(--muted);font-size:12px">Eventos recientes del sistema</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="chip" id="events-count-chip">0 eventos</span>
+              <input id="events-search" class="btn" style="padding:8px 10px" placeholder="Buscar..." />
+              <select id="events-filter" class="btn" style="padding:8px 10px">
+                <option value="all">Todos</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+              </select>
+              <button class="btn" id="events-refresh">Actualizar</button>
+              <button class="btn" id="events-clear">Limpiar</button>
+            </div>
+          </div>
+          <div class="events-table-wrap">
+            <table class="events-table">
+              <thead>
+                <tr>
+                  <th>Fecha/Hora</th>
+                  <th>Nivel</th>
+                  <th>Categoría</th>
+                  <th>Mensaje</th>
+                  <th>Resultado</th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted)">Sin eventos registrados</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- SECCIÓN G: Configuración -->
+      <section class="page" id="configuracion">
+        <div class="section-intro">
+          <h2>Configuración</h2>
+          <p>Preferencias operativas y visuales de la aplicación.</p>
+        </div>
+        <article class="card">
+          <div class="report-row">
+            <div>
+              <strong>Intervalo de actualización</strong>
+              <small>Frecuencia de lectura de las métricas de Windows</small>
+            </div>
+            <select id="interval" class="btn">
+              <option value="1000">1 segundo</option>
+              <option value="2000" selected>2 segundos (Recomendado)</option>
+              <option value="3000">3 segundos</option>
+              <option value="5000">5 segundos</option>
+            </select>
+          </div>
+
+          <div class="report-row">
+            <div>
+              <strong>Unidad de memoria</strong>
+              <small>Unidad para representar la capacidad y el consumo</small>
+            </div>
+            <select id="unit-selector" class="btn">
+              <option value="GB" selected>Gigabytes (GB)</option>
+              <option value="MB">Megabytes (MB)</option>
+            </select>
+          </div>
+
+          <div class="report-row">
+            <div>
+              <strong>Video de fondo</strong>
+              <small>Activar o desactivar video para ahorro de recursos</small>
+            </div>
+            <button class="btn" id="btn-toggle-video">Video: Activado</button>
+          </div>
+
+          <div class="report-row">
+            <div>
+              <strong>Estilo de interfaz</strong>
+              <small>Tema visual oficial de RamTrace</small>
+            </div>
+            <span class="chip">Oscuro · Deep Navy & Violet</span>
+          </div>
+
+          <div class="report-row">
+            <div>
+              <strong>Estado del servicio</strong>
+              <small>Conexión directa con APIs nativas</small>
+            </div>
+            <span class="positive">● Conectado a Windows API</span>
+          </div>
+
+          <div style="margin-top:20px;display:flex;gap:10px">
+            <button class="btn" id="btn-refresh-hardware">↻ Volver a consultar hardware (WMI)</button>
+            <span id="refresh-hw-msg" style="align-self:center;font-size:12px;color:var(--muted)"></span>
+          </div>
+        </article>
+      </section>
+
+      <!-- SECCIÓN H: Acerca de -->
+      <section class="page" id="acerca">
+        <div class="section-intro">
+          <h2>Acerca de RamTrace</h2>
+          <p>Conoce el propósito, la identidad y las características técnicas de la aplicación.</p>
+        </div>
+        <div class="grid two-col">
+          <article class="card">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+              <div class="brand-icon logo-frame about-logo" style="width:54px;height:54px">
+                <img src="../assets/logo.png" alt="Logo de RamTrace">
+              </div>
+              <div>
+                <div class="eyebrow">MONITOREA · ANALIZA · PROTEGE</div>
+                <h2 style="margin:4px 0 0;font-size:24px">Ram<span style="color:#a875ff">Trace</span></h2>
+              </div>
+            </div>
+            <p style="color:#c2cde8">
+              RamTrace es una aplicación de escritorio diseñada para consultar la capacidad física de memoria RAM de una computadora, observar su utilización en tiempo real y facilitar la documentación de un diagnóstico técnico.
+            </p>
+            <div class="detail-grid" style="margin-top:18px">
+              <div class="detail"><small>Versión</small><strong>1.0.0</strong></div>
+              <div class="detail"><small>Plataforma compatible</small><strong>Windows 10 / 11</strong></div>
+              <div class="detail"><small>Tipo de aplicación</small><strong>Escritorio nativo</strong></div>
+              <div class="detail"><small>Formatos de reporte</small><strong>TXT y CSV</strong></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-title"><h2>Objetivo de la aplicación</h2></div>
+            <p style="color:#c2cde8">Presentar la información de memoria de forma clara y visual para que el usuario pueda comprender cuánta RAM tiene el equipo, cuánto está utilizando y cuánta permanece disponible.</p>
+            <div class="recommend">
+              <div class="check">✓</div>
+              <div>
+                <strong>Consulta y monitoreo en tiempo real</strong>
+                <p>Muestra indicadores de memoria y una gráfica interactiva de uso a lo largo del tiempo.</p>
+              </div>
+            </div>
+            <div class="recommend">
+              <div class="check">✓</div>
+              <div>
+                <strong>Documentación y reportes</strong>
+                <p>Permite generar reportes técnicos con métricas, estado de la prueba y observaciones.</p>
+              </div>
+            </div>
+            <div class="notice">
+              <b>Nota importante</b>
+              El uso elevado de RAM no confirma por sí solo fallos físicos. Para investigar posibles defectos se requiere una prueba específica de memoria.
+            </div>
+          </article>
+        </div>
+
+        <article class="card table-card">
+          <div class="card-title"><h2>Información del proyecto</h2></div>
+          <div class="report-row">
+            <div>Nombre de la aplicación<small>Proyecto de diagnóstico y monitoreo</small></div>
+            <strong>RamTrace</strong>
+          </div>
+          <div class="report-row">
+            <div>Área académica<small>Asignatura relacionada</small></div>
+            <strong>Organización y Arquitectura de Computadoras</strong>
+          </div>
+          <div class="report-row">
+            <div>Estado de desarrollo<small>Conectividad con el sistema</small></div>
+            <span class="chip" style="background:#0d654f;color:#71f5ca">● Versión nativa conectada a Windows</span>
+          </div>
+          <p class="empty-note">Esta aplicación de escritorio consulta métricas reales del sistema operativo Windows y la infraestructura de hardware CIM/WMI.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="../../node_modules/three/build/three.module.js" type="module"></script>
+  <script src="../../node_modules/three/examples/jsm/loaders/GLTFLoader.js" type="module"></script>
+  <script type="module">
+    import * as THREE from '../../node_modules/three/build/three.module.js';
+    import { GLTFLoader } from '../../node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+    window.THREE = THREE;
+    window.THREE.GLTFLoader = GLTFLoader;
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

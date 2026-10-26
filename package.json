@@ -1,0 +1,45 @@
+{
+  "name": "ramtrace",
+  "version": "1.0.0",
+  "description": "RamTrace — Aplicación de diagnóstico y monitoreo de memoria RAM",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "build:installer": "electron-builder --win nsis"
+  },
+  "keywords": [
+    "ram",
+    "monitor",
+    "diagnostic",
+    "windows",
+    "memory"
+  ],
+  "author": "RamTrace",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ramtrace.app",
+    "productName": "RamTrace",
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "src/assets/logo.ico"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ]
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
