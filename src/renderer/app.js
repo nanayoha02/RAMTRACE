@@ -272,6 +272,17 @@
   });
 
   // --- Real-time Memory Data Binding ---
+  const RAM_WARN = 70;
+  const RAM_CRIT = 85;
+
+  function getRamState(p) {
+    if (p === undefined || p === null || isNaN(p)) return { level: 'unknown', text: 'Sin datos', cls: 'warn' };
+    const val = Math.min(100, Math.max(0, p));
+    if (val >= RAM_CRIT) return { level: 'critical', text: '! Muy elevado', cls: 'crit' };
+    if (val >= RAM_WARN) return { level: 'warning', text: '⚠ Elevado', cls: 'warn' };
+    return { level: 'normal', text: '✓ Normal', cls: 'ok' };
+  }
+
   function updateGauge(percent, context) {
     const hasValue = !(percent === undefined || percent === null || isNaN(percent));
     const p = hasValue ? Math.min(100, Math.max(0, percent)) : null;
@@ -293,8 +304,8 @@
       if (!elPct) return;
       if (!hasValue) {
         elPct.textContent = 'Sin datos';
-        if (elNeedle) elNeedle.style.transform = 'rotate(-90deg)';
-        if (elArc) elArc.style.strokeDasharray = '0 ' + (2 * Math.PI * 80);
+        if (elNeedle) { elNeedle.style.transform = 'rotate(-90deg)'; elNeedle.style.transformOrigin = '100px 100px'; }
+        if (elArc) { elArc.style.strokeDasharray = '0 ' + (2 * Math.PI * 80); elArc.style.stroke = 'var(--muted)'; }
         if (elPill) {
           elPill.textContent = 'Sin datos';
           elPill.style.background = '#332916';
@@ -311,21 +322,17 @@
       if (elArc) {
         const len = 2 * Math.PI * 80 * (p / 100);
         elArc.style.strokeDasharray = len + ' ' + (2 * Math.PI * 80);
+        const st = getRamState(p);
+        if (st.cls === 'crit') elArc.style.stroke = '#ff5f86';
+        else if (st.cls === 'warn') elArc.style.stroke = '#ffc857';
+        else elArc.style.stroke = 'url(#gauge-grad)';
       }
       if (elPill) {
-        if (p >= 85) {
-          elPill.textContent = '! Muy elevado';
-          elPill.style.background = '#762d49';
-          elPill.style.color = '#ffb4c7';
-        } else if (p >= 70) {
-          elPill.textContent = '⚠ Elevado';
-          elPill.style.background = '#72511b';
-          elPill.style.color = '#ffe08a';
-        } else {
-          elPill.textContent = '✓ Normal';
-          elPill.style.background = '#0d654f';
-          elPill.style.color = '#71f5ca';
-        }
+        const st = getRamState(p);
+        elPill.textContent = st.text;
+        if (st.cls === 'crit') { elPill.style.background = '#762d49'; elPill.style.color = '#ffb4c7'; }
+        else if (st.cls === 'warn') { elPill.style.background = '#72511b'; elPill.style.color = '#ffe08a'; }
+        else { elPill.style.background = '#0d654f'; elPill.style.color = '#71f5ca'; }
       }
     }
     
@@ -367,21 +374,11 @@
         statusPill.style.background = '#332916';
         statusPill.style.color = '#ffd05b';
       } else {
-        let icon = '✓ ';
-        let bg = '#0d654f';
-        let color = '#71f5ca';
-
-        if (metrics.level === 'critical' || current >= 85) {
-          icon = '! ';
-          bg = '#762d49';
-          color = '#ffb4c7';
-        } else if (metrics.level === 'warning' || (current >= 70 && current < 85)) {
-          icon = '⚠ ';
-          bg = '#72511b';
-          color = '#ffe08a';
-        }
-
-        const statusText = metrics.statusText || (current >= 85 ? 'Muy elevado' : (current >= 70 ? 'Elevado' : 'Normal'));
+        const st = getRamState(current);
+        let icon = st.cls === 'crit' ? '! ' : (st.cls === 'warn' ? '⚠ ' : '✓ ');
+        let bg = st.cls === 'crit' ? '#762d49' : (st.cls === 'warn' ? '#72511b' : '#0d654f');
+        let color = st.cls === 'crit' ? '#ffb4c7' : (st.cls === 'warn' ? '#ffe08a' : '#71f5ca');
+        const statusText = metrics.statusText || (st.cls === 'crit' ? 'Muy elevado' : (st.cls === 'warn' ? 'Elevado' : 'Normal'));
         statusPill.textContent = icon + statusText;
         statusPill.style.background = bg;
         statusPill.style.color = color;
@@ -390,8 +387,9 @@
 
     // Recommendation card
     if (hasValue) {
-      const recTitle = metrics.recommendTitle || (current >= 85 ? 'Utilización muy elevada' : (current >= 70 ? 'Utilización elevada' : 'Utilización dentro del rango definido'));
-      const recText = metrics.recommendText || (current >= 85 ? 'Revisa la carga del equipo y considera cerrar aplicaciones que no necesites.' : (current >= 70 ? 'Revisa las aplicaciones abiertas y el consumo de memoria.' : 'El consumo actual está por debajo del umbral de alerta de esta práctica.'));
+      const st = getRamState(current);
+      const recTitle = metrics.recommendTitle || (st.cls === 'crit' ? 'Utilización muy elevada' : (st.cls === 'warn' ? 'Utilización elevada' : 'Utilización dentro del rango definido'));
+      const recText = metrics.recommendText || (st.cls === 'crit' ? 'Revisa la carga del equipo y considera cerrar aplicaciones que no necesites.' : (st.cls === 'warn' ? 'Revisa las aplicaciones abiertas y el consumo de memoria.' : 'El consumo actual está por debajo del umbral de alerta de esta práctica.'));
       setElText('recommend-title', recTitle);
       setElText('recommend-text', recText);
     } else {
@@ -430,9 +428,11 @@
         monStatus.style.background = statusPill.style.background;
         monStatus.style.color = statusPill.style.color;
       } else {
-        if (current >= 85) { monStatus.textContent = '! Muy elevado'; monStatus.style.background = '#762d49'; monStatus.style.color = '#ffb4c7'; }
-        else if (current >= 70) { monStatus.textContent = '⚠ Elevado'; monStatus.style.background = '#72511b'; monStatus.style.color = '#ffe08a'; }
-        else { monStatus.textContent = '✓ Normal'; monStatus.style.background = '#0d654f'; monStatus.style.color = '#71f5ca'; }
+        const st = getRamState(current);
+        monStatus.textContent = st.text;
+        if (st.cls === 'crit') { monStatus.style.background = '#762d49'; monStatus.style.color = '#ffb4c7'; }
+        else if (st.cls === 'warn') { monStatus.style.background = '#72511b'; monStatus.style.color = '#ffe08a'; }
+        else { monStatus.style.background = '#0d654f'; monStatus.style.color = '#71f5ca'; }
       }
     }
 
