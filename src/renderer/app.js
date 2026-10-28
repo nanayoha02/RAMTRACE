@@ -10,6 +10,7 @@
     unit: 'GB',
     videoEnabled: true,
     neonVideoEnabled: false,
+    crimsonVideoEnabled: false,
     testResult: 'Pendiente',
     observations: '',
     hardware: null,
@@ -181,6 +182,7 @@
   function setTheme(theme) {
     state.theme = theme;
     if (theme === 'neon') state.neonVideoEnabled = false;
+    if (theme === 'crimson') state.crimsonVideoEnabled = false;
     try {
       localStorage.setItem('ramtrace_theme', state.theme);
     } catch (err) {}
@@ -307,7 +309,10 @@
   // --- Background Video Initialization ---
   const bgVideo = document.getElementById('bg-video');
   function isVideoVisible() {
-    return effectiveTheme() === 'neon' ? state.neonVideoEnabled : state.videoEnabled;
+    const theme = effectiveTheme();
+    if (theme === 'neon') return state.neonVideoEnabled;
+    if (theme === 'crimson') return state.crimsonVideoEnabled;
+    return state.videoEnabled;
   }
   function updateVideoButton() {
     const button = document.getElementById('btn-toggle-video');
@@ -1136,8 +1141,11 @@
   const toggleVideoBtn = document.getElementById('btn-toggle-video');
   if (toggleVideoBtn) {
     toggleVideoBtn.addEventListener('click', () => {
-      if (effectiveTheme() === 'neon') {
+      const theme = effectiveTheme();
+      if (theme === 'neon') {
         state.neonVideoEnabled = !state.neonVideoEnabled;
+      } else if (theme === 'crimson') {
+        state.crimsonVideoEnabled = !state.crimsonVideoEnabled;
       } else {
         state.videoEnabled = !state.videoEnabled;
         try {

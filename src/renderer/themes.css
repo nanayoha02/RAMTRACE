@@ -720,6 +720,184 @@
   --input-placeholder: #a8bedb;
 }
 
+/* Tema Carmesí editorial */
+[data-theme="crimson"],
+[data-theme-preview="crimson"] {
+  color-scheme: dark;
+
+  --bg: #120308;
+  --bg-image: url("../assets/patterns/carmesi-fondo.webp");
+  --video-overlay: rgba(40, 5, 12, 0.55);
+  --video-opacity: 0.58;
+  --video-filter: saturate(1.08) contrast(1.04) brightness(0.74);
+
+  --panel: #1b070e;
+  --panel-2: #250a12;
+  --panel-3: #2f0d17;
+  --soft-bg: linear-gradient(145deg, rgba(52, 14, 24, 0.88), rgba(25, 5, 11, 0.94));
+  --soft-border: rgba(245, 230, 200, 0.22);
+
+  --line: #4d1a26;
+  --border-width: 1px;
+  --border-color: rgba(245, 230, 200, 0.24);
+  --border-inner: rgba(255, 246, 228, 0.1);
+
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  --blur: 20px;
+  --saturate: 1.08;
+  --shadow-card: 0 22px 54px rgba(8, 0, 3, 0.62);
+  --shadow-button: 0 10px 24px rgba(10, 0, 3, 0.5);
+  --shadow-inset: inset 0 0 80px rgba(179, 58, 74, 0.09);
+
+  --title-tracking: -1px;
+  --section-title-size: clamp(26px, 2.6vw, 34px);
+
+  --text: #f5e6c8;
+  --text-strong: #fff2d8;
+  --muted: #d5bfa1;
+  --muted-2: #c9b293;
+  --body-copy: #ead9bc;
+  --text-on-accent: #2a080d;
+
+  --accent: #e8cfa4;
+  --accent-2: #b33a4a;
+  --accent-contrast: #2a080d;
+  --accent-glow: rgba(179, 58, 74, 0.42);
+  --accent-soft: rgba(232, 207, 164, 0.18);
+  --focus-ring: #f5e6c8;
+
+  --sidebar-bg: linear-gradient(180deg, rgba(25, 5, 11, 0.97), rgba(12, 2, 6, 0.98));
+  --sidebar-border: rgba(245, 230, 200, 0.18);
+  --nav-text: #ddc9ab;
+  --nav-hover-bg: rgba(232, 207, 164, 0.1);
+  --nav-hover-text: #fff3da;
+  --nav-active-bg: linear-gradient(100deg, #7c1c2b, #a92f41);
+  --nav-active-text: #fff3da;
+  --nav-focus: #f5e6c8;
+  --mini-card-bg: linear-gradient(140deg, rgba(48, 13, 22, 0.94), rgba(25, 5, 11, 0.97));
+  --mini-card-note: #d5bfa1;
+  --brand-accent: #f5e6c8;
+
+  --device-bg: rgba(30, 7, 13, 0.94);
+  --device-border: rgba(245, 230, 200, 0.22);
+  --device-text: #f7ead1;
+  --avatar-bg: #8e2635;
+  --avatar-text: #fff3da;
+
+  --card-bg: linear-gradient(145deg, rgba(36, 8, 15, 0.9), rgba(20, 4, 9, 0.94));
+  --card-border: rgba(245, 230, 200, 0.18);
+  --metric-top-text: #ddc8a8;
+  --metric-icon-bg: #4a1723;
+  --metric-icon-text: #f5e6c8;
+  --metric-icon-blue-bg: #3f1a2b;
+  --metric-icon-blue-text: #f5e6c8;
+  --metric-icon-green-bg: #4d2b1f;
+  --metric-icon-green-text: #ffe7bd;
+  --metric-icon-pink-bg: #6b1e30;
+  --metric-icon-pink-text: #ffe9cf;
+
+  --progress-track: #3a111a;
+  --progress-from: #f5e6c8;
+  --progress-to: #b33a4a;
+  --progress-glow: rgba(179, 58, 74, 0.35);
+
+  --table-head-bg: rgba(52, 13, 22, 0.94);
+  --table-head-text: #ddc8a8;
+  --table-row-border: #4d1a26;
+  --table-text: #f5e6c8;
+  --chip-bg: #4a1723;
+  --chip-text: #f7e6c4;
+  --code-text: #f0c99d;
+
+  --btn-bg: #2a0b13;
+  --btn-border: #6b3440;
+  --btn-text: #f5e6c8;
+  --btn-primary-bg: linear-gradient(100deg, #7c1c2b, #a92f41);
+  --btn-primary-border: transparent;
+  --btn-primary-text: #fff3da;
+  --btn-primary-shadow: 0 8px 22px rgba(179, 58, 74, 0.32);
+  --btn-danger-border: #b33a4a;
+  --btn-danger-text: #ffd9c9;
+
+  --notice-bg: rgba(66, 36, 10, 0.86);
+  --notice-border: #a76d31;
+  --notice-text: #ffe6b8;
+  --notice-title: #ffd28a;
+  --recommend-bg: rgba(54, 12, 20, 0.9);
+  --recommend-border: #b33a4a;
+  --recommend-text: #f0ddc0;
+  --bullets-text: #e8d4b4;
+  --detail-bg: rgba(24, 5, 10, 0.95);
+  --detail-border: var(--line);
+  --footer-text: #ddc8a8;
+
+  --ok: #c7d6a6;
+  --ok-bg: #26351f;
+  --ok-text: #e4f0c7;
+  --warn: #f0c47a;
+  --warn-bg: #4d2d0c;
+  --warn-text: #ffe3a8;
+  --crit: #f5e6c8;
+  --crit-bg: #6d1626;
+  --crit-text: #fff3da;
+  --unknown-bg: #3d2a10;
+  --unknown-text: #ffd98f;
+  --info-bg: #4e1b2a;
+  --info-text: #ffe8c9;
+
+  --chart-grid: #4a1a26;
+  --chart-grid-vertical: #36131c;
+  --chart-axis: #ddc8a8;
+  --chart-label: #d5bfa1;
+  --chart-line: #f5e6c8;
+  --chart-line-glow: rgba(245, 230, 200, 0.44);
+  --chart-area-from: rgba(232, 207, 164, 0.28);
+  --chart-area-to: rgba(179, 58, 74, 0.02);
+  --chart-point-fill: #fff3da;
+  --chart-point-stroke: #b33a4a;
+  --chart-empty: #d5bfa1;
+  --chart-error: #ffe6c9;
+  --chart-error-bg: rgba(109, 22, 38, 0.4);
+  --monitor-chart-bg: radial-gradient(circle at top, rgba(60, 13, 24, 0.94), rgba(16, 3, 8, 0.97));
+  --monitor-chart-border: rgba(245, 230, 200, 0.3);
+  --monitor-chart-shadow: inset 0 0 80px rgba(179, 58, 74, 0.12);
+  --legend-violet: #f5e6c8;
+  --legend-violet-glow: rgba(245, 230, 200, 0.44);
+
+  --gauge-track: rgba(245, 230, 200, 0.22);
+  --gauge-1: #f5e6c8;
+  --gauge-2: #d7a58f;
+  --gauge-3: #b33a4a;
+  --gauge-center: #f5e6c8;
+  --gauge-center-stroke: rgba(179, 58, 74, 0.64);
+  --gauge-needle: #f5e6c8;
+
+  --ram-face-bg: linear-gradient(180deg, rgba(64, 16, 28, 0.96), rgba(20, 4, 9, 0.98));
+  --ram-face-border: rgba(245, 230, 200, 0.3);
+  --ram-chip-bg: radial-gradient(circle, #fff2d8, #b33a4a);
+  --ram-chip-shadow: 0 0 14px rgba(179, 58, 74, 0.34);
+  --ram-edge-glow: 0 0 46px rgba(179, 58, 74, 0.18);
+  --ram-shadow: radial-gradient(circle, rgba(179, 58, 74, 0.24), transparent 70%);
+  --ram-stick-shadow: drop-shadow(0 40px 60px rgba(86, 14, 30, 0.38));
+  --ram-video-scene-border: rgba(245, 230, 200, 0.24);
+  --ram-video-bg: transparent;
+  --ram-video-filter: saturate(1.05) contrast(1.04) brightness(0.86);
+
+  --logo-bg: #f5e6c8;
+  --logo-shadow: 0 0 20px rgba(245, 230, 200, 0.26);
+  --check-bg: #f5e6c8;
+  --export-icon-bg: #f5e6c8;
+
+  --input-bg: rgba(32, 7, 14, 0.96);
+  --input-text: #f7ead1;
+  --input-border: #6b3440;
+  --input-placeholder: #d0b896;
+}
+
 [data-reduced-effects="true"] {
   --blur: 0px;
   --shadow-card: none;
