@@ -9,6 +9,7 @@
     intervalMs: 2000,
     unit: 'GB',
     videoEnabled: true,
+    neonVideoEnabled: false,
     testResult: 'Pendiente',
     observations: '',
     hardware: null,
@@ -179,10 +180,12 @@
 
   function setTheme(theme) {
     state.theme = theme;
+    if (theme === 'neon') state.neonVideoEnabled = false;
     try {
       localStorage.setItem('ramtrace_theme', state.theme);
     } catch (err) {}
     applyTheme();
+    initVideo();
     drawCharts();
   }
 
@@ -303,9 +306,17 @@
 
   // --- Background Video Initialization ---
   const bgVideo = document.getElementById('bg-video');
+  function isVideoVisible() {
+    return effectiveTheme() === 'neon' ? state.neonVideoEnabled : state.videoEnabled;
+  }
+  function updateVideoButton() {
+    const button = document.getElementById('btn-toggle-video');
+    if (!button) return;
+    button.textContent = isVideoVisible() ? 'Video: Activado' : 'Video: Desactivado';
+  }
   function initVideo() {
     if (!bgVideo) return;
-    if (state.videoEnabled) {
+    if (isVideoVisible()) {
       bgVideo.classList.remove('hidden');
       bgVideo.play().catch(() => {
         // Fallback gracefully if system policies block autoplay
@@ -314,6 +325,7 @@
       bgVideo.pause();
       bgVideo.classList.add('hidden');
     }
+    updateVideoButton();
   }
 
   // --- Navigation Handling ---
@@ -1123,13 +1135,15 @@
 
   const toggleVideoBtn = document.getElementById('btn-toggle-video');
   if (toggleVideoBtn) {
-    toggleVideoBtn.textContent = state.videoEnabled ? 'Video: Activado' : 'Video: Desactivado';
     toggleVideoBtn.addEventListener('click', () => {
-      state.videoEnabled = !state.videoEnabled;
-      toggleVideoBtn.textContent = state.videoEnabled ? 'Video: Activado' : 'Video: Desactivado';
-      try {
-        localStorage.setItem('ramtrace_video', String(state.videoEnabled));
-      } catch (err) {}
+      if (effectiveTheme() === 'neon') {
+        state.neonVideoEnabled = !state.neonVideoEnabled;
+      } else {
+        state.videoEnabled = !state.videoEnabled;
+        try {
+          localStorage.setItem('ramtrace_video', String(state.videoEnabled));
+        } catch (err) {}
+      }
       initVideo();
     });
   }
