@@ -318,6 +318,10 @@
         const angle = -90 + (p * 1.8);
         elNeedle.style.transform = `rotate(${angle}deg)`;
         elNeedle.style.transformOrigin = '100px 100px';
+        const st = getRamState(p);
+        if (st.cls === 'crit') elNeedle.style.stroke = '#ff5f86';
+        else if (st.cls === 'warn') elNeedle.style.stroke = '#ffc857';
+        else elNeedle.style.stroke = '#f4f6ff';
       }
       if (elArc) {
         const len = 2 * Math.PI * 80 * (p / 100);

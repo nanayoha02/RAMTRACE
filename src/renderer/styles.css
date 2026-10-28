@@ -114,10 +114,12 @@ main{padding:28px clamp(18px,3vw,42px) 42px;min-width:0;max-width:1600px;width:1
 .gauge-track{fill:none;stroke:rgba(90,110,170,.4);stroke-width:14;stroke-linecap:round}
 .gauge-arc{fill:none;stroke:url(#gauge-grad);stroke-width:14;stroke-linecap:round;stroke-dasharray:0 502;transition:stroke-dasharray .6s ease}
 .gauge-needle{stroke:#f4f6ff;stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:100px 100px;transition:transform .6s ease}
+[data-theme="light"] .gauge-needle{stroke:#1a2238}
+[data-theme="light"] .gauge-center{fill:#6b4dff;stroke:rgba(107,77,255,0.4)}
 .gauge-center{fill:#b9c6ff;stroke:rgba(255,255,255,.4);stroke-width:2}
 .gauge-readout{position:absolute;text-align:center}
-.gauge-percent{font-size:28px;font-weight:800}
-.gauge-label{color:var(--muted);font-size:12px}
+.gauge-percent{font-size:30px;font-weight:900;letter-spacing:-.5px}
+.gauge-label{color:var(--muted);font-size:12px;letter-spacing:.5px;text-transform:uppercase}
 .gauge-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
 .gauge-stat{border:1px solid rgba(120,140,200,.28);background:rgba(16,26,48,.6);border-radius:12px;padding:10px;text-align:center}
 .gauge-stat small{color:var(--muted);display:block}
