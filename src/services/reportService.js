@@ -2,139 +2,309 @@
  * Report generation service (TXT and CSV)
  */
 
+const WIDTH = 80;
+
+let fallbackAppVersion = 'No disponible';
+try {
+  const pkg = require('../../package.json');
+  if (pkg && pkg.version) fallbackAppVersion = String(pkg.version);
+} catch (error) {}
+
 function safeStr(v) {
   if (v === null || v === undefined) return 'No disponible';
   const s = String(v).trim();
   return s === '' ? 'No disponible' : s;
 }
 
-function formatNumPct(v) {
-  if (v === undefined || v === null || isNaN(v)) return 'No disponible';
-  return v + '%';
+function toNumber(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-function generateTxtReport(data) {
-  const now = new Date().toLocaleString('es-PA', { dateStyle: 'full', timeStyle: 'medium' });
-  const genTime = new Date().toLocaleString('es-PA');
+function oneLine(v) {
+  return safeStr(v).replace(/\s+/g, ' ');
+}
+
+function truncateText(value, width) {
+  const text = String(value);
+  if (width <= 0) return '';
+  if (text.length <= width) return text;
+  if (width <= 3) return text.slice(0, width);
+  return text.slice(0, width - 3) + '...';
+}
+
+function line(value = '') {
+  return truncateText(String(value).replace(/[\r\n]+/g, ' '), WIDTH).padEnd(WIDTH, ' ');
+}
+
+function centerLine(value) {
+  const text = truncateText(String(value), WIDTH);
+  const left = Math.max(0, Math.floor((WIDTH - text.length) / 2));
+  return line(' '.repeat(left) + text);
+}
+
+function wrapText(value, width) {
+  const text = oneLine(value);
+  if (!text) return [''];
+
+  const output = [];
+  let current = '';
+
+  text.split(' ').forEach((word) => {
+    if (!word) return;
+
+    if (word.length > width) {
+      if (current) {
+        output.push(current);
+        current = '';
+      }
+      let rest = word;
+      while (rest.length > width) {
+        output.push(rest.slice(0, width));
+        rest = rest.slice(width);
+      }
+      current = rest;
+      return;
+    }
+
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= width) {
+      current = candidate;
+    } else {
+      if (current) output.push(current);
+      current = word;
+    }
+  });
+
+  if (current) output.push(current);
+  return output.length ? output : [''];
+}
+
+function dividerLine(char = '-') {
+  return line(char.repeat(WIDTH));
+}
+
+function sectionLines(number, title) {
+  return [line(''), line(`${number}. ${String(title).toUpperCase()}`), dividerLine('-')];
+}
+
+function kvLines(label, value, labelWidth = 27) {
+  const safeLabel = truncateText(oneLine(label), labelWidth).padEnd(labelWidth, ' ');
+  const prefix = `  ${safeLabel}: `;
+  const continuation = ' '.repeat(prefix.length);
+  return wrapText(value, WIDTH - prefix.length).map((part, index) =>
+    line((index === 0 ? prefix : continuation) + part)
+  );
+}
+
+function bulletLines(value) {
+  const prefix = '  - ';
+  const continuation = '    ';
+  return wrapText(value, WIDTH - prefix.length).map((part, index) =>
+    line((index === 0 ? prefix : continuation) + part)
+  );
+}
+
+function formatDateTime(value) {
+  const date = value === undefined || value === null || value === '' ? new Date() : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No disponible';
+  const pad = (number) => String(number).padStart(2, '0');
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  ].join(' ');
+}
+
+function formatLongDateTime(value) {
+  const date = value === undefined || value === null || value === '' ? new Date() : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No disponible';
+  return date.toLocaleString('es-PA', { dateStyle: 'full', timeStyle: 'medium' });
+}
+
+function formatPercent(value) {
+  const n = toNumber(value);
+  return n === null ? 'No disponible' : `${Math.round(n)}%`;
+}
+
+function buildBar(value, width = 32) {
+  const n = toNumber(value);
+  const safeWidth = Math.max(1, Math.trunc(width));
+  if (n === null) return '░'.repeat(safeWidth);
+  const clamped = Math.min(100, Math.max(0, n));
+  const filled = Math.round((clamped / 100) * safeWidth);
+  return '█'.repeat(filled) + '░'.repeat(safeWidth - filled);
+}
+
+function resolveStatus(value) {
+  const n = toNumber(value);
+  if (n === null) return { flag: '[ -- ]', label: 'No disponible' };
+  if (n >= 85) return { flag: '[ !! ]', label: 'Muy elevado' };
+  if (n >= 70) return { flag: '[ !  ]', label: 'Elevado' };
+  return { flag: '[ OK ]', label: 'Normal' };
+}
+
+function resolveAppVersion(data, options) {
+  return safeStr(
+    (options && options.appVersion) ||
+    (data && data.appVersion) ||
+    fallbackAppVersion
+  );
+}
+
+function generateTxtReport(data = {}, options = {}) {
   const hardware = data.hardware || {};
   const metrics = data.metrics || {};
   const history = Array.isArray(data.history) ? data.history : [];
   const events = Array.isArray(data.events) ? data.events : [];
-  const stats = data.monitoringStats || { count: history.length || 0, min: metrics.percent, max: metrics.percent, avg: metrics.percent };
+  const stats = data.monitoringStats || {};
   const modules = Array.isArray(hardware.modules) ? hardware.modules : [];
+  const appVersion = resolveAppVersion(data, options);
+  const now = formatLongDateTime(new Date());
+  const generatedAt = formatDateTime(new Date());
 
-  const count = Number(stats.count) || history.length || 0;
-  const minPctVal = stats.min !== undefined && stats.min !== null && !isNaN(stats.min) ? stats.min : null;
-  const maxPctVal = stats.max !== undefined && stats.max !== null && !isNaN(stats.max) ? stats.max : null;
-  const avgPctVal = stats.avg !== undefined && stats.avg !== null && !isNaN(stats.avg) ? Math.round(stats.avg) : null;
+  const historyValues = history
+    .map((item) => toNumber(item && item.percent))
+    .filter((value) => value !== null);
+  const count = Math.max(0, Math.trunc(toNumber(stats.count) ?? history.length));
+  const minValue = toNumber(stats.min) ?? (historyValues.length ? Math.min(...historyValues) : toNumber(metrics.percent));
+  const maxValue = toNumber(stats.max) ?? (historyValues.length ? Math.max(...historyValues) : toNumber(metrics.percent));
+  const avgRaw = toNumber(stats.avg) ?? (historyValues.length
+    ? historyValues.reduce((sum, value) => sum + value, 0) / historyValues.length
+    : toNumber(metrics.percent));
+  const avgValue = avgRaw === null ? null : Math.round(avgRaw);
+  const status = resolveStatus(metrics.percent);
+  const currentPercent = formatPercent(metrics.percent);
 
-  let utilStatus = 'No disponible';
-  if (metrics.percent !== undefined && metrics.percent !== null && !isNaN(metrics.percent)) {
-    if (metrics.percent >= 85) utilStatus = 'Muy elevado';
-    else if (metrics.percent >= 70) utilStatus = 'Elevado';
-    else utilStatus = 'Normal';
-  }
+  const lines = [];
+  lines.push(dividerLine('='));
+  lines.push(centerLine('RAMTRACE - INFORME TÉCNICO DE DIAGNÓSTICO Y MONITOREO'));
+  lines.push(centerLine('MONITOREA · ANALIZA · PROTEGE'));
+  lines.push(dividerLine('='));
 
-  let modulesText = '';
+  lines.push(...sectionLines(1, 'ENCABEZADO'));
+  lines.push(...kvLines('Nombre del informe', 'Informe técnico RamTrace'));
+  lines.push(...kvLines('Fecha de generación', now));
+  lines.push(...kvLines('Equipo', hardware.computerName));
+  lines.push(...kvLines('Sistema operativo', `${safeStr(hardware.osName)} (Versión: ${safeStr(hardware.osVersion)})`));
+  lines.push(...kvLines('Versión aplicación', appVersion));
+
+  lines.push(...sectionLines(2, 'RESUMEN EJECUTIVO'));
+  lines.push(line(`  ESTADO GENERAL: ${status.flag}  ${status.label.toUpperCase()}`));
+  lines.push(line(`  Utilización actual: ${currentPercent}`));
+  lines.push(line(`  ${buildBar(metrics.percent, 50)}  ${currentPercent}`));
+  lines.push(...kvLines('Memoria en uso', metrics.usedFormatted));
+  lines.push(...kvLines('Memoria disponible', metrics.freeFormatted));
+  lines.push(...kvLines('Prueba de memoria', data.testResult || 'Pendiente'));
+
+  lines.push(...sectionLines(3, 'MÉTRICAS PRINCIPALES'));
+  lines.push(...kvLines('RAM física instalada', hardware.totalInstalledFormatted));
+  lines.push(...kvLines('RAM utilizable (Windows)', hardware.totalUsableFormatted));
+  lines.push(...kvLines('RAM utilizada', metrics.usedFormatted));
+  lines.push(...kvLines('RAM disponible', metrics.freeFormatted));
+  lines.push(...kvLines('Porcentaje de utilización', currentPercent));
+  lines.push(...kvLines('Muestras registradas', count));
+  lines.push(...kvLines('Utilización mínima', formatPercent(minValue)));
+  lines.push(...kvLines('Utilización máxima', formatPercent(maxValue)));
+  lines.push(...kvLines('Utilización promedio', formatPercent(avgValue)));
+
+  lines.push(...sectionLines(4, 'INFORMACIÓN DE HARDWARE (REAL)'));
+  lines.push(...kvLines('Origen de datos', 'Windows API & CIM/WMI'));
+  lines.push(...kvLines('Fuente hardware', hardware.hardwareSource));
+  lines.push(...kvLines('Módulos detectados', modules.length));
+
   if (modules.length === 0) {
-    modulesText = '  - No se pudieron consultar módulos individuales. Origen: ' + safeStr(hardware.hardwareSource) + '\n';
+    lines.push(...bulletLines(`No se pudieron consultar módulos individuales. Origen: ${safeStr(hardware.hardwareSource)}`));
   } else {
-    modules.forEach((m, i) => {
-      const slot = safeStr(m.slot || m.name);
-      const cap = safeStr(m.capacityFormatted);
-      const man = safeStr(m.manufacturer);
-      const type = safeStr(m.type);
-      const speed = safeStr(m.speed);
-      const part = safeStr(m.partNumber);
-      modulesText += `  [Módulo ${i + 1}] ${slot} | Capacidad: ${cap} | Fabricante: ${man} | Tipo: ${type} | Velocidad: ${speed} | N/P: ${part}\n`;
+    modules.forEach((module, index) => {
+      const item = module || {};
+      lines.push(line(''));
+      lines.push(line(`  [MÓDULO ${index + 1}]`));
+      lines.push(...kvLines('Ranura', item.slot || item.name));
+      lines.push(...kvLines('Banco', item.bank));
+      lines.push(...kvLines('Capacidad', item.capacityFormatted));
+      lines.push(...kvLines('Fabricante', item.manufacturer));
+      lines.push(...kvLines('Tipo', item.type));
+      lines.push(...kvLines('Velocidad', item.speed));
+      lines.push(...kvLines('N/P', item.partNumber));
+      lines.push(...kvLines('Estado', item.status || 'Operativo'));
     });
   }
 
-  let historyText = '';
+  lines.push(...sectionLines(5, 'HISTORIAL DE MEDICIONES'));
+  lines.push(...kvLines('Muestras registradas', count));
+  lines.push(...kvLines('Mínimo / Máximo / Promedio', `${formatPercent(minValue)} / ${formatPercent(maxValue)} / ${formatPercent(avgValue)}`));
+
   if (history.length === 0) {
-    historyText = '  - Sin historial de mediciones recopilado.\n';
+    lines.push(...bulletLines('Sin historial de mediciones recopilado.'));
   } else {
-    history.slice(-60).forEach((h, i) => {
-      const t = h.timestamp ? new Date(h.timestamp).toLocaleString('es-PA') : 'No disponible';
-      const p = h.percent !== undefined && h.percent !== null && !isNaN(h.percent) ? h.percent + '%' : 'No disponible';
-      historyText += `  [${i + 1}] ${t} | Utilización: ${p}\n`;
+    const recent = history.slice(-20);
+    lines.push(line(''));
+    lines.push(line(`  Mini gráfica de las últimas ${recent.length} muestras (0-100%):`));
+    recent.forEach((item) => {
+      const percent = toNumber(item && item.percent);
+      const timestamp = item && item.timestamp ? item.timestamp : null;
+      const percentText = percent === null ? ' -- ' : `${String(Math.round(percent)).padStart(3, ' ')}%`;
+      lines.push(line(`  ${formatDateTime(timestamp)} [${buildBar(percent, 32)}] ${percentText}`));
     });
+    if (history.length > recent.length) {
+      lines.push(line(`  Se muestran ${recent.length} de ${history.length} muestras registradas.`));
+    }
   }
 
-  let eventsText = '';
+  lines.push(...sectionLines(6, 'REGISTRO DE EVENTOS'));
+  const eventColumns = [
+    { label: 'Hora', width: 19 },
+    { label: 'Nivel', width: 7 },
+    { label: 'Categoría', width: 16 },
+    { label: 'Mensaje', width: 27 }
+  ];
+  const eventSeparator = '  ' + eventColumns.map((column) => '-'.repeat(column.width)).join('-+-');
+
+  lines.push(line('  ' + eventColumns.map((column) => column.label.padEnd(column.width, ' ')).join(' | ')));
+  lines.push(line(eventSeparator));
   if (events.length === 0) {
-    eventsText = '  - Sin eventos registrados.\n';
+    lines.push(...bulletLines('Sin eventos registrados.'));
   } else {
-    events.slice(-50).forEach((e, i) => {
-      const t = e.timestamp ? new Date(e.timestamp).toLocaleString('es-PA') : 'No disponible';
-      eventsText += `  [${i + 1}] ${t} | ${safeStr(e.level)} | ${safeStr(e.category)} | ${safeStr(e.message)} | ${safeStr(e.result)}\n`;
+    events.slice(-50).forEach((event) => {
+      const values = [
+        formatDateTime(event && event.timestamp),
+        event && event.level ? event.level : 'INFO',
+        event && event.category ? event.category : 'General',
+        event && event.message ? event.message : 'Sin mensaje'
+      ];
+      const wrapped = values.map((value, index) => wrapText(value, eventColumns[index].width));
+      const height = Math.max(...wrapped.map((wrappedLines) => wrappedLines.length));
+      for (let row = 0; row < height; row += 1) {
+        const cells = wrapped.map((columnLines, index) =>
+          truncateText(columnLines[row] || '', eventColumns[index].width).padEnd(eventColumns[index].width, ' ')
+        );
+        lines.push(line('  ' + cells.join(' | ')));
+      }
     });
   }
 
-  let recs = [];
-  if (metrics.percent !== undefined && metrics.percent !== null && !isNaN(metrics.percent)) {
-    if (metrics.percent >= 85) recs.push('- Utilización muy elevada. Revisar procesos activos y considerar liberar memoria.');
-    else if (metrics.percent >= 70) recs.push('- Utilización elevada. Vigilar aplicaciones que consumen más recursos.');
-    else recs.push('- Utilización dentro del rango esperado para monitoreo.');
+  lines.push(...sectionLines(7, 'RECOMENDACIONES'));
+  const percent = toNumber(metrics.percent);
+  if (percent === null) {
+    lines.push(...bulletLines('No hay medición de utilización disponible en este momento.'));
+  } else if (percent >= 85) {
+    lines.push(...bulletLines('Utilización muy elevada. Revisar procesos activos y considerar liberar memoria.'));
+  } else if (percent >= 70) {
+    lines.push(...bulletLines('Utilización elevada. Vigilar aplicaciones que consumen más recursos.'));
   } else {
-    recs.push('- No hay medición de utilización disponible en este momento.');
+    lines.push(...bulletLines('Utilización dentro del rango esperado para monitoreo.'));
   }
-  recs.push('- Recuerde: el uso de memoria no confirma fallos físicos. Para diagnósticos físicos use el Diagnóstico de memoria de Windows (mdsched.exe).');
+  lines.push(...bulletLines('Recuerde: el uso de memoria no confirma fallos físicos. Para diagnósticos físicos use el Diagnóstico de memoria de Windows (mdsched.exe).'));
 
-  return `================================================================================
-RAMTRACE - INFORME TÉCNICO DE DIAGNÓSTICO Y MONITOREO
-MONITOREA · ANALIZA · PROTEGE
-================================================================================
+  lines.push(...sectionLines(8, 'PIE DE PÁGINA'));
+  lines.push(...kvLines('Fecha de generación', generatedAt));
+  lines.push(...kvLines('Generado por', `RamTrace v${appVersion}`));
+  lines.push(...bulletLines('Nota: Los datos son mediciones reales. El porcentaje de utilización no es, por sí solo, diagnóstico de daño físico de la RAM.'));
+  lines.push(line(''));
+  lines.push(dividerLine('='));
 
-1. ENCABEZADO
---------------------------------------------------------------------------------
-Nombre del informe : Informe técnico RamTrace
-Fecha de generación: ${now}
-Equipo              : ${safeStr(hardware.computerName)}
-Sistema operativo   : ${safeStr(hardware.osName)} (Versión: ${safeStr(hardware.osVersion)})
-Versión aplicación  : 1.0.0
-
-2. RESUMEN EJECUTIVO
---------------------------------------------------------------------------------
-Estado de utilización : ${utilStatus}
-Porcentaje actual      : ${formatNumPct(metrics.percent)}
-Memoria en uso         : ${safeStr(metrics.usedFormatted)}
-Memoria disponible     : ${safeStr(metrics.freeFormatted)}
-
-3. MÉTRICAS PRINCIPALES
---------------------------------------------------------------------------------
-RAM física instalada   : ${safeStr(hardware.totalInstalledFormatted)}
-RAM utilizable (Win)   : ${safeStr(hardware.totalUsableFormatted)}
-RAM utilizada          : ${safeStr(metrics.usedFormatted)}
-RAM disponible         : ${safeStr(metrics.freeFormatted)}
-Porcentaje de utilización: ${formatNumPct(metrics.percent)}
-Muestras registradas   : ${count}
-Mínimo / Máximo / Promedio: ${minPctVal === null ? 'No disponible' : minPctVal + '%'} / ${maxPctVal === null ? 'No disponible' : maxPctVal + '%'} / ${avgPctVal === null ? 'No disponible' : avgPctVal + '%'}
-
-4. INFORMACIÓN DE HARDWARE (REAL)
---------------------------------------------------------------------------------
-Origen de datos        : Windows API & CIM/WMI
-Fuente hardware        : ${safeStr(hardware.hardwareSource)}
-Módulos detectados     : ${modules.length}
-${modulesText}
-5. HISTORIAL DE MEDICIONES
---------------------------------------------------------------------------------
-${historyText}
-6. REGISTRO DE EVENTOS
---------------------------------------------------------------------------------
-${eventsText}
-7. RECOMENDACIONES
---------------------------------------------------------------------------------
-${recs.join('\n')}
-
-8. PIE DE PÁGINA
---------------------------------------------------------------------------------
-Fecha de generación: ${genTime}
-Generado por: RamTrace v1.0.0
-Nota: Los datos son mediciones reales. El porcentaje de utilización no es, por sí solo, diagnóstico de daño físico de la RAM.
-
-================================================================================
-`;
+  return lines.join('\r\n') + '\r\n';
 }
 
 function generateCsvReport(data) {

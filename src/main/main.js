@@ -208,7 +208,7 @@ ipcMain.handle('save-report', async (event, payload) => {
     } else {
       content = isCsv
         ? reportService.generateCsvReport(reportData)
-        : reportService.generateTxtReport(reportData);
+        : reportService.generateTxtReport(reportData, { appVersion: app.getVersion() });
     }
 
     // Write UTF-8 with BOM for Excel compatibility on Windows CSV
