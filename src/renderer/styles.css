@@ -1548,6 +1548,70 @@ select.btn option {
   background: #2f4568;
 }
 
+/* Tema Claro */
+[data-theme="light"] .card {
+  position: relative;
+}
+
+[data-theme="light"] .card::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.42), rgba(34, 211, 238, 0.36), rgba(124, 58, 237, 0.32), transparent);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+[data-theme="light"] .topbar h1 {
+  text-shadow: 0 12px 26px rgba(37, 99, 235, 0.08);
+}
+
+[data-theme="light"] .eyebrow {
+  text-shadow: 0 0 12px rgba(37, 99, 235, 0.18);
+}
+
+[data-theme="light"] .device,
+[data-theme="light"] .mini-card {
+  box-shadow: inset 0 1px 0 #ffffff, 0 8px 22px rgba(35, 56, 100, 0.07);
+}
+
+[data-theme="light"] .nav button.active {
+  box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="light"] th {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .theme-option[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 8px 20px rgba(37, 99, 235, 0.08);
+}
+
+[data-theme="light"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #eef3fa;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c6d5e8;
+  border: 2px solid #eef3fa;
+  border-radius: var(--radius-pill);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #aec2db;
+}
+
 [data-reduced-effects="true"] .card,
 [data-reduced-effects="true"] .sidebar,
 [data-reduced-effects="true"] .monitor-chart-wrap {
