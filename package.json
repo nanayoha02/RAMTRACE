@@ -1,6 +1,6 @@
 {
   "name": "ramtrace",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "RamTrace — Aplicación de diagnóstico y monitoreo de memoria RAM",
   "main": "src/main/main.js",
   "scripts": {

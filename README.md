@@ -2,14 +2,28 @@
 
 **MONITOREA · ANALIZA · PROTEGE**
 
+**Versión 1.1.0**
+
 Aplicación de escritorio nativa para Windows 10 y 11 desarrollada en el contexto de la asignatura *Organización y Arquitectura de Computadoras*. Permite consultar la capacidad física de hardware de la memoria RAM, monitorear la utilización en tiempo real con datos auténticos del sistema operativo, orientar al usuario en pruebas oficiales de hardware y generar reportes técnicos en formatos TXT y CSV.
+
+---
+
+## Novedades de la versión 1.1.0
+
+- **Cinco temas con formas y fondos propios**: Oscuro, Claro, Lavanda suave, Azul neón y Carmesí editorial, cada uno con paleta, paneles, bordes, tipografía y fondo característicos.
+- **Efectos reducidos**: opción de accesibilidad que elimina desenfoques y animaciones decorativas, y vuelve más opacos los paneles para mejorar el rendimiento y la legibilidad.
+- **Videos de fondo optimizados**: video tecnológico en 1080p con menor peso, reproducción local y control independiente en los temas inmersivos para evitar distracciones.
+- **Fondos temáticos optimizados**: patrones e imágenes suaves de Lavanda, Azul neón y Carmesí, con capas de contraste para mantener la legibilidad.
+- **Tipografía local**: Montserrat incluida con la aplicación, sin dependencia de conexión a Internet.
 
 ---
 
 ## 1. Características Principales
 
 - **Fidelidad Visual Absoluta**: Basada en el diseño de interfaz de referencia, conservando la paleta oscura tecnológica (*Deep Navy*, *Electric Blue*, *Cyber Violet*, *Cyan*), tarjetas redondeadas, resplandores discretos y el logo oficial de RamTrace.
-- **Video de Fondo Integrado**: Reproducción fluida y en bucle del video de ambientación tecnológica, con capa oscura de alto contraste, opción de desactivación para ahorro de energía y fallback a fondo oscuro si el video no estuviese presente.
+- **Sistema de Cinco Temas**: Oscuro, Claro, Lavanda suave, Azul neón y Carmesí editorial. Cada tema redefine colores, formas, fondos, medidores y estados sin alterar la lógica de monitoreo.
+- **Efectos Reducidos**: Modo de accesibilidad que desactiva desenfoques, sombras y animaciones decorativas, y aumenta la opacidad de los paneles.
+- **Video de Fondo Integrado**: Reproducción fluida y en bucle del video de ambientación tecnológica optimizado a 1080p, con capa oscura de alto contraste, opción de desactivación para ahorro de energía y fallback a fondo oscuro si el video no estuviese presente.
 - **Métricas Reales del Sistema Operativo Windows**:
   - Consulta directa mediante las APIs nativas de Windows (`GlobalMemoryStatusEx` a través de libuv/Node.js) con 0% de sobrecarga y latencia instantánea (< 1 ms).
   - Distinción rigurosa entre **RAM física instalada** (suma de módulos en placa base), **Memoria utilizable por Windows** (TotalVisibleMemorySize), **Memoria en uso**, **Memoria disponible** y **Memoria reservada para hardware** (BIOS / APU / GPU integrada).
@@ -38,7 +52,8 @@ Aplicación de escritorio nativa para Windows 10 y 11 desarrollada en el context
 - **Configuración Persistente**:
   - Frecuencia de muestreo configurable (1s, 2s, 3s, 5s).
   - Selección de unidades de visualización (**GB** o **MB**).
-  - Conmutador de video de fondo (activar/desactivar).
+  - Selector de tema y color de acento para los temas Oscuro y Claro.
+  - Modo de **Efectos reducidos** y conmutador de video de fondo.
   - Persistencia de opciones y observaciones en almacenamiento local.
 
 ---
@@ -51,7 +66,7 @@ Aplicación de escritorio nativa para Windows 10 y 11 desarrollada en el context
 4. **Monitoreo**: Gráfica de mayor tamaño para análisis continuo, estadísticas completas (mínimo, máximo, promedio y cantidad de muestras) y controles de inicio/pausa.
 5. **Diagnóstico**: Explicación técnica de la diferencia entre presión de software y salud física de la RAM, guía para `mdsched.exe`, botón de inicio seguro de la herramienta de Windows, selector de estado y campo para observaciones.
 6. **Reportes**: Vista previa del reporte actual y botones para exportar a archivos `.txt` y `.csv`.
-7. **Configuración**: Intervalo de refresco, selector de unidad de memoria, conmutador del video de fondo, estado del servicio WMI y botón de recarga de hardware.
+7. **Configuración**: Intervalo de refresco, selector de unidad de memoria, cinco temas visuales, color de acento, efectos reducidos, conmutador del video de fondo, estado del servicio WMI y botón de recarga de hardware.
 8. **Acerca de**: Identidad oficial, logo, descripción del proyecto, plataforma objetivo y relación con la asignatura *Organización y Arquitectura de Computadoras*.
 
 ---
@@ -61,12 +76,16 @@ Aplicación de escritorio nativa para Windows 10 y 11 desarrollada en el context
 ```
 ramtrace/
 ├── package.json               # Configuración de dependencias y scripts de compilación
+├── package-lock.json          # Resolución reproducible de dependencias
 ├── README.md                  # Documentación técnica completa
+├── CHANGELOG.md               # Historial de versiones
 ├── src/
 │   ├── assets/                # Recursos multimedia empaquetados
 │   │   ├── logo.png           # Logo oficial de RamTrace (alta resolución)
 │   │   ├── logo.ico           # Icono nativo para la ventana y el ejecutable
-│   │   └── bg-video.mp4       # Video de fondo tecnológico optimizado
+│   │   ├── bg-video.mp4       # Video de fondo tecnológico optimizado a 1080p
+│   │   ├── fonts/             # Montserrat y Playfair Display locales
+│   │   └── patterns/          # Fondos de Lavanda, Azul neón y Carmesí
 │   ├── main/
 │   │   ├── main.js            # Proceso principal de Electron (IPC, ventanas, mdsched, diálogos)
 │   │   └── preload.js         # ContextBridge seguro (sin acceso irrestricto al SO)
@@ -75,11 +94,12 @@ ramtrace/
 │   │   └── reportService.js   # Generador de reportes en formatos TXT y CSV
 │   └── renderer/
 │       ├── index.html         # Estructura visual con las 8 secciones de RamTrace
-│       ├── styles.css         # Hoja de estilos con la paleta y componentes originales
+│       ├── themes.css         # Tokens y paletas de los cinco temas
+│       ├── styles.css         # Componentes visuales, fondos y efectos reducidos
 │       └── app.js             # Lógica del cliente, gráficos Canvas, timers y navegación
 └── dist/                      # Ejecutable generado para Windows
     ├── win-unpacked/          # Aplicación desempacada lista para ejecución
-    └── RamTrace 1.0.0.exe     # Ejecutable portable autónomo
+    └── RamTrace 1.1.0.exe     # Ejecutable portable autónomo
 ```
 
 ---
@@ -93,7 +113,7 @@ ramtrace/
 ### Pasos
 1. Abrir una terminal de PowerShell en el directorio del proyecto:
    ```powershell
-   cd C:\Users\Misse\.gemini\antigravity\scratch\ramtrace
+   cd ruta\a\RAMTRACE
    ```
 2. Instalar dependencias (si no se han instalado):
    ```powershell
@@ -102,6 +122,10 @@ ramtrace/
 3. Iniciar la aplicación en modo desarrollo:
    ```powershell
    npm start
+   ```
+4. Generar el ejecutable portable (opcional):
+   ```powershell
+   npm run build:portable
    ```
 
 ---
@@ -115,7 +139,7 @@ npm run build:portable
 ```
 
 El ejecutable se generará en la carpeta `dist/`:
-- **`dist/RamTrace 1.0.0.exe`**: Archivo ejecutable portable que no requiere instalación ni privilegios de administrador para ejecutarse en cualquier computadora con Windows 10 u 11.
+- **`dist/RamTrace 1.1.0.exe`**: Archivo ejecutable portable que no requiere instalación ni privilegios de administrador para ejecutarse en cualquier computadora con Windows 10 u 11.
 - **`dist/win-unpacked/RamTrace.exe`**: Carpeta con los binarios listos para distribuir directamente o empaquetar.
 
 ---
