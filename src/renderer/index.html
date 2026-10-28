@@ -536,21 +536,19 @@
                 <div class="export-option-info">
                   <div class="export-icon">📊</div>
                   <div>
-                    <strong>Historial de métricas CSV</strong>
-                    <p>Mediciones estructuradas para analizar en Excel.</p>
+                    <strong>Tabla CSV independiente</strong>
+                    <p>Exporta resumen, historial, módulos o eventos como una sola tabla.</p>
                   </div>
                 </div>
-                <button class="btn" id="export-csv">Exportar CSV</button>
-              </div>
-              <div class="export-option">
-                <div class="export-option-info">
-                  <div class="export-icon">📝</div>
-                  <div>
-                    <strong>Registro de eventos CSV</strong>
-                    <p>Eventos, advertencias y errores registrados por RamTrace.</p>
-                  </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <select id="csv-table-select" class="btn" style="padding:10px 12px" aria-label="Tabla CSV a exportar">
+                    <option value="summary">Resumen</option>
+                    <option value="history">Historial</option>
+                    <option value="modules">Módulos</option>
+                    <option value="events">Eventos</option>
+                  </select>
+                  <button class="btn" id="export-csv">Exportar CSV</button>
                 </div>
-                <button class="btn" id="export-log-csv">Exportar log</button>
               </div>
             </div>
             <p id="export-status-msg" class="empty-note"></p>

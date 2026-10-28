@@ -307,79 +307,178 @@ function generateTxtReport(data = {}, options = {}) {
   return lines.join('\r\n') + '\r\n';
 }
 
-function generateCsvReport(data) {
-  const now = new Date().toLocaleString('es-PA');
+const BYTES_PER_GIGABYTE = 1024 ** 3;
+
+function formatDecimal(value, decimals = 2) {
+  const n = toNumber(value);
+  if (n === null) return '';
+  return String(Number(n.toFixed(decimals)));
+}
+
+function formatGigabytes(bytes) {
+  const n = toNumber(bytes);
+  if (n === null) return '';
+  return String(Math.round((n / BYTES_PER_GIGABYTE) * 100) / 100);
+}
+
+function parseGigabytes(value) {
+  const match = String(value === null || value === undefined ? '' : value)
+    .replace(',', '.')
+    .match(/-?\d+(?:\.\d+)?/);
+  return match ? String(Number(match[0])) : '';
+}
+
+function gigabytesFrom(bytes, formattedValue) {
+  const fromBytes = formatGigabytes(bytes);
+  return fromBytes !== '' ? fromBytes : parseGigabytes(formattedValue);
+}
+
+function formatSpeedMt(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const match = String(value).match(/\d+(?:[.,]\d+)?/);
+  if (!match) return '';
+  const n = Number(match[0].replace(',', '.'));
+  return Number.isFinite(n) ? String(n) : '';
+}
+
+function csvCell(value) {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function rowsToCsv(rows) {
+  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+}
+
+function generateSummaryCsv(data = {}, options = {}) {
   const hardware = data.hardware || {};
   const metrics = data.metrics || {};
-  const history = Array.isArray(data.history) ? data.history : [];
   const modules = Array.isArray(hardware.modules) ? hardware.modules : [];
-
-  const fmtPct = (v) => (v === undefined || v === null || isNaN(v) ? 'No disponible' : v);
-  const fmtVal = (v) => (v === undefined || v === null || v === '' ? 'No disponible' : v);
-  const fmtNum = (v) => (v === undefined || v === null || isNaN(v) ? 'No disponible' : v);
+  const appVersion = resolveAppVersion(data, options);
+  const status = metrics.statusText || resolveStatus(metrics.percent).label;
 
   const rows = [
-    ['Fecha y hora', 'Aplicación', 'Equipo', 'Sistema operativo', 'Versión de SO', 'Fuente hardware', 'RAM instalada (GB)', 'RAM utilizable (GB)', 'RAM usada (GB)', 'RAM disponible (GB)', 'Utilización (%)', 'Estado de utilización', 'Módulos detectados (cantidad)', 'Estado prueba de memoria', 'Observaciones']
+    ['Fecha y hora', 'Aplicación', 'Versión aplicación', 'Equipo', 'Sistema operativo', 'Versión de SO', 'Fuente hardware', 'RAM instalada (GB)', 'RAM utilizable (GB)', 'RAM usada (GB)', 'RAM disponible (GB)', 'Utilización (%)', 'Estado de utilización', 'Módulos detectados (cantidad)', 'Estado prueba de memoria', 'Observaciones']
   ];
 
   rows.push([
-    now,
+    formatDateTime(Date.now()),
     'RamTrace',
-    fmtVal(hardware.computerName),
-    fmtVal(hardware.osName),
-    fmtVal(hardware.osVersion),
-    fmtVal(hardware.hardwareSource),
-    fmtVal(hardware.totalInstalledFormatted),
-    fmtVal(hardware.totalUsableFormatted),
-    fmtVal(metrics.usedFormatted),
-    fmtVal(metrics.freeFormatted),
-    fmtPct(metrics.percent),
-    fmtVal(metrics.statusText),
+    appVersion,
+    safeStr(hardware.computerName),
+    safeStr(hardware.osName),
+    safeStr(hardware.osVersion),
+    safeStr(hardware.hardwareSource),
+    gigabytesFrom(hardware.totalInstalledBytes, hardware.totalInstalledFormatted),
+    gigabytesFrom(hardware.totalUsableBytes, hardware.totalUsableFormatted),
+    gigabytesFrom(metrics.usedBytes, metrics.usedFormatted),
+    gigabytesFrom(metrics.freeBytes, metrics.freeFormatted),
+    formatDecimal(metrics.percent, 0),
+    status,
     modules.length,
-    fmtVal(data.testResult || 'Pendiente'),
-    fmtVal(data.observations)
+    safeStr(data.testResult || 'Pendiente'),
+    safeStr(data.observations)
   ]);
 
-  if (history.length > 0) {
-    rows.push(['---HISTORIAL DE MEDICIONES---']);
-    rows.push(['Fecha y hora', 'Utilización (%)', 'RAM instalada (GB)', 'RAM utilizable (GB)', 'RAM usada (GB)', 'RAM disponible (GB)']);
-    history.slice(-120).forEach(h => {
-      const t = h.timestamp ? new Date(h.timestamp).toLocaleString('es-PA') : now;
-      rows.push([t, fmtNum(h.percent), fmtVal(hardware.totalInstalledFormatted), fmtVal(hardware.totalUsableFormatted), fmtVal(h.usedFormatted), fmtVal(h.freeFormatted)]);
-    });
-  }
-
-  return rows
-    .map(r => r.map(cell => {
-      const s = String(cell === null || cell === undefined ? 'No disponible' : cell);
-      return `"${s.replace(/"/g, '""')}"`;
-    }).join(','))
-    .join('\r\n');
+  return rowsToCsv(rows);
 }
 
-function generateEventsCsv(data) {
+function generateHistoryCsv(data = {}) {
+  const history = Array.isArray(data.history) ? data.history : [];
+  const rows = [['Fecha y hora', 'Utilización (%)']];
+
+  history.forEach((item) => {
+    rows.push([
+      formatDateTime(item && item.timestamp),
+      formatDecimal(item && item.percent, 0)
+    ]);
+  });
+
+  return rowsToCsv(rows);
+}
+
+function generateModulesCsv(data = {}) {
+  const hardware = data.hardware || {};
+  const modules = Array.isArray(hardware.modules) ? hardware.modules : [];
+  const rows = [[
+    'Módulo (número)',
+    'Ranura',
+    'Banco',
+    'Capacidad (GB)',
+    'Fabricante',
+    'Tipo',
+    'Velocidad (MT/s)',
+    'N/P',
+    'Estado'
+  ]];
+
+  modules.forEach((module, index) => {
+    const item = module || {};
+    rows.push([
+      index + 1,
+      safeStr(item.slot || item.name),
+      safeStr(item.bank),
+      gigabytesFrom(item.capacityBytes, item.capacityFormatted),
+      safeStr(item.manufacturer),
+      safeStr(item.type),
+      formatSpeedMt(item.speed),
+      safeStr(item.partNumber),
+      safeStr(item.status || 'Operativo')
+    ]);
+  });
+
+  return rowsToCsv(rows);
+}
+
+function generateEventsCsv(data = {}) {
   const events = Array.isArray(data.events) ? data.events : [];
-  const rows = [
-    ['Fecha y hora', 'Nivel', 'Categoría', 'Mensaje', 'Resultado']
-  ];
-  if (events.length === 0) {
-    rows.push(['No disponible', 'INFO', 'Sistema', 'Sin eventos registrados', 'Sin datos']);
-  } else {
-    events.slice(-200).forEach(e => {
-      const t = e.timestamp ? new Date(e.timestamp).toLocaleString('es-PA') : 'No disponible';
-      rows.push([t, e.level || 'INFO', e.category || 'General', e.message || '', e.result || '']);
-    });
+  const rows = [['Fecha y hora', 'Nivel', 'Categoría', 'Mensaje', 'Resultado']];
+
+  events.slice(-200).forEach((event) => {
+    rows.push([
+      formatDateTime(event && event.timestamp),
+      event && event.level ? event.level : 'INFO',
+      event && event.category ? event.category : 'General',
+      event && event.message ? event.message : '',
+      event && event.result ? event.result : ''
+    ]);
+  });
+
+  return rowsToCsv(rows);
+}
+
+function normalizeCsvTable(table) {
+  const value = String(table || 'summary').toLowerCase();
+  if (value === 'resumen') return 'summary';
+  if (value === 'historial') return 'history';
+  if (value === 'modulos' || value === 'módulos') return 'modules';
+  if (value === 'eventos') return 'events';
+  if (['summary', 'history', 'modules', 'events'].includes(value)) return value;
+  return 'summary';
+}
+
+function generateCsvReport(data = {}, table = 'summary', options = {}) {
+  switch (normalizeCsvTable(table)) {
+    case 'history':
+      return generateHistoryCsv(data);
+    case 'modules':
+      return generateModulesCsv(data);
+    case 'events':
+      return generateEventsCsv(data);
+    default:
+      return generateSummaryCsv(data, options);
   }
-  return rows
-    .map(r => r.map(cell => {
-      const s = String(cell === null || cell === undefined ? '' : cell);
-      return `"${s.replace(/"/g, '""')}"`;
-    }).join(','))
-    .join('\r\n');
 }
 
 module.exports = {
   generateTxtReport,
   generateCsvReport,
+  generateSummaryCsv,
+  generateHistoryCsv,
+  generateModulesCsv,
   generateEventsCsv
 };

@@ -14,6 +14,13 @@ let currentUnit = 'GB';
 const eventsLog = [];
 const MAX_EVENTS = 500;
 
+const CSV_TABLES = {
+  summary: { file: 'resumen', label: 'Resumen' },
+  history: { file: 'historial', label: 'Historial' },
+  modules: { file: 'modulos', label: 'Módulos' },
+  events: { file: 'eventos', label: 'Eventos' }
+};
+
 function logAppEvent(level, category, message, result = 'OK') {
   try {
     const ev = {
@@ -185,11 +192,21 @@ ipcMain.handle('save-report', async (event, payload) => {
     const format = payload.format === 'csv' ? 'csv' : 'txt';
     const reportData = payload.reportData || {};
     const isCsv = format === 'csv';
+    const requestedTable = typeof payload.table === 'string'
+      ? payload.table.toLowerCase()
+      : (payload.exportType === 'events' ? 'events' : 'summary');
+    const csvTable = isCsv && Object.prototype.hasOwnProperty.call(CSV_TABLES, requestedTable)
+      ? requestedTable
+      : 'summary';
+    const csvConfig = CSV_TABLES[csvTable];
     const ext = isCsv ? 'csv' : 'txt';
-    const defaultName = `Reporte_RamTrace_${Date.now()}.${ext}`;
+    const defaultName = isCsv
+      ? `Reporte_RamTrace_${csvConfig.file}_${Date.now()}.csv`
+      : `Reporte_RamTrace_${Date.now()}.txt`;
+    const dialogTitle = isCsv ? `Guardar CSV - ${csvConfig.label}` : 'Guardar reporte TXT';
 
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: `Guardar reporte ${ext.toUpperCase()}`,
+      title: dialogTitle,
       defaultPath: path.join(app.getPath('documents'), defaultName),
       filters: [
         { name: isCsv ? 'Archivo CSV (*.csv)' : 'Archivo de texto (*.txt)', extensions: [ext] },
@@ -198,24 +215,19 @@ ipcMain.handle('save-report', async (event, payload) => {
     });
 
     if (canceled || !filePath) {
-      logAppEvent('INFO', 'Reportes', `Exportación ${ext.toUpperCase()} cancelada`, 'Cancelado');
+      logAppEvent('INFO', 'Reportes', `Exportación ${isCsv ? `CSV (${csvConfig.label})` : 'TXT'} cancelada`, 'Cancelado');
       return { success: false, canceled: true };
     }
 
-    let content;
-    if (payload.exportType === 'events') {
-      content = reportService.generateEventsCsv ? reportService.generateEventsCsv(reportData) : reportService.generateCsvReport(reportData);
-    } else {
-      content = isCsv
-        ? reportService.generateCsvReport(reportData)
-        : reportService.generateTxtReport(reportData, { appVersion: app.getVersion() });
-    }
+    const content = isCsv
+      ? reportService.generateCsvReport(reportData, csvTable, { appVersion: app.getVersion() })
+      : reportService.generateTxtReport(reportData, { appVersion: app.getVersion() });
 
     // Write UTF-8 with BOM for Excel compatibility on Windows CSV
-    const bom = (isCsv || payload.exportType === 'events') ? '\ufeff' : '';
+    const bom = isCsv ? '\ufeff' : '';
     fs.writeFileSync(filePath, bom + content, 'utf8');
 
-    logAppEvent('INFO', 'Reportes', `Exportación ${ext.toUpperCase()} exitosa`, 'OK');
+    logAppEvent('INFO', 'Reportes', `Exportación ${isCsv ? `CSV (${csvConfig.label})` : 'TXT'} exitosa`, 'OK');
     return { success: true, filePath };
   } catch (err) {
     logAppEvent('ERROR', 'Reportes', 'Error al guardar reporte', 'Error');

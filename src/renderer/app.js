@@ -986,11 +986,23 @@
   }
 
   // --- Reports Generation and Export ---
-  async function triggerExport(format, exportType = 'report') {
+  const CSV_TABLE_LABELS = {
+    summary: 'Resumen',
+    history: 'Historial',
+    modules: 'Módulos',
+    events: 'Eventos'
+  };
+
+  async function triggerExport(format, table = 'summary') {
     const statusMsg = document.getElementById('export-status-msg');
-    const fmt = (exportType === 'events') ? 'csv' : (format === 'csv' ? 'csv' : 'txt');
+    const fmt = format === 'csv' ? 'csv' : 'txt';
+    const requestedTable = String(table || 'summary').toLowerCase();
+    const csvTable = Object.prototype.hasOwnProperty.call(CSV_TABLE_LABELS, requestedTable)
+      ? requestedTable
+      : 'summary';
+    const exportLabel = fmt === 'csv' ? `CSV de ${CSV_TABLE_LABELS[csvTable]}` : 'reporte TXT';
     if (statusMsg) {
-      statusMsg.textContent = `Generando y preparando ${exportType === 'events' ? 'registro de eventos' : ('reporte ' + fmt.toUpperCase())}...`;
+      statusMsg.textContent = `Generando y preparando ${exportLabel}...`;
       statusMsg.style.color = 'var(--muted)';
     }
 
@@ -1035,15 +1047,17 @@
 
     if (window.ramtraceApi) {
       try {
-        const res = await window.ramtraceApi.saveReport({ format: fmt, reportData, exportType: exportType === 'events' ? 'events' : 'report' });
+        const payload = { format: fmt, reportData };
+        if (fmt === 'csv') payload.table = csvTable;
+        const res = await window.ramtraceApi.saveReport(payload);
         if (res && res.success) {
           if (statusMsg) {
-            statusMsg.textContent = `✓ ${exportType === 'events' ? 'Registro de eventos' : 'Reporte'} guardado con éxito en: ${res.filePath}`;
+            statusMsg.textContent = `✓ ${exportLabel} guardado con éxito en: ${res.filePath}`;
             statusMsg.style.color = 'var(--ok-text)';
           }
           try {
             if (window.ramtraceApi.logEvent) {
-              await window.ramtraceApi.logEvent({ level: 'INFO', category: 'Reportes', message: `Exportación ${fmt.toUpperCase()} realizada`, result: 'OK' });
+              await window.ramtraceApi.logEvent({ level: 'INFO', category: 'Reportes', message: `Exportación ${exportLabel} realizada`, result: 'OK' });
             }
           } catch (e) {}
         } else if (res && res.canceled) {
@@ -1053,7 +1067,7 @@
           }
           try {
             if (window.ramtraceApi.logEvent) {
-              await window.ramtraceApi.logEvent({ level: 'INFO', category: 'Reportes', message: `Exportación ${fmt.toUpperCase()} cancelada`, result: 'Cancelado' });
+              await window.ramtraceApi.logEvent({ level: 'INFO', category: 'Reportes', message: `Exportación ${exportLabel} cancelada`, result: 'Cancelado' });
             }
           } catch (e) {}
         } else {
@@ -1063,7 +1077,7 @@
           }
           try {
             if (window.ramtraceApi.logEvent) {
-              await window.ramtraceApi.logEvent({ level: 'ERROR', category: 'Reportes', message: `Error al exportar ${fmt.toUpperCase()}`, result: 'Error' });
+              await window.ramtraceApi.logEvent({ level: 'ERROR', category: 'Reportes', message: `Error al exportar ${exportLabel}`, result: 'Error' });
             }
           } catch (e) {}
         }
@@ -1080,17 +1094,15 @@
 
   ['export-btn', 'export-btn-2'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('click', () => triggerExport('txt', 'report'));
+    if (el) el.addEventListener('click', () => triggerExport('txt'));
   });
 
+  const csvTableSelect = document.getElementById('csv-table-select');
   const exportCsvBtn = document.getElementById('export-csv');
   if (exportCsvBtn) {
-    exportCsvBtn.addEventListener('click', () => triggerExport('csv', 'report'));
-  }
-
-  const exportLogCsvBtn = document.getElementById('export-log-csv');
-  if (exportLogCsvBtn) {
-    exportLogCsvBtn.addEventListener('click', () => triggerExport('csv', 'events'));
+    exportCsvBtn.addEventListener('click', () => {
+      triggerExport('csv', csvTableSelect ? csvTableSelect.value : 'summary');
+    });
   }
 
   // --- Configuration Section Handling ---
