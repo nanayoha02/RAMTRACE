@@ -1,9 +1,27 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RamTrace — Diagnóstico y monitoreo de memoria RAM</title>
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('ramtrace_theme') || 'dark';
+        var effective = theme === 'system'
+          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          : theme;
+        document.documentElement.setAttribute('data-theme', effective);
+        if (localStorage.getItem('ramtrace_reduced_effects') === 'true') {
+          document.documentElement.setAttribute('data-reduced-effects', 'true');
+        }
+      } catch (error) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="themes.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -85,15 +103,15 @@
           <article class="card home-gauge-card">
             <div class="card-title">
               <h2>Tacómetro RAM</h2>
-              <span id="home-gauge-level-pill" class="status">✓ Normal</span>
+              <span id="home-gauge-level-pill" class="status" data-level="ok">✓ Normal</span>
             </div>
             <div class="gauge-wrap">
               <svg class="gauge-svg gauge-svg-lg" viewBox="0 0 200 120" role="img" aria-label="Tacómetro semicircular de uso de RAM">
                 <defs>
                   <linearGradient id="home-gauge-grad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#4f9bff" />
-                    <stop offset="50%" stop-color="#a15cff" />
-                    <stop offset="100%" stop-color="#ff4fd8" />
+                    <stop class="gauge-stop-1" offset="0%" />
+                    <stop class="gauge-stop-2" offset="50%" />
+                    <stop class="gauge-stop-3" offset="100%" />
                   </linearGradient>
                 </defs>
                 <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100" />
@@ -122,7 +140,7 @@
                   <h2>⌁ &nbsp; Uso de RAM en tiempo real</h2>
                   <p id="chart-subtitle">Medición real de Windows · últimas 60 muestras</p>
                 </div>
-                <span class="chip" id="monitor-label">Activo</span>
+                <span class="chip" id="monitor-label" data-level="info">Activo</span>
               </div>
               <div class="chart-wrap"><canvas id="chart"></canvas></div>
               <div class="legend">
@@ -148,7 +166,7 @@
                     </tr>
                   </thead>
                   <tbody id="home-modules-tbody">
-                    <tr><td colspan="5" style="text-align:center;color:var(--muted)">Consultando módulos de memoria...</td></tr>
+                    <tr><td colspan="5" class="table-empty">Consultando módulos de memoria...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -253,15 +271,15 @@
           <article class="card">
             <div class="card-title">
               <h2>Tacómetro de uso de RAM</h2>
-              <span id="gauge-level-pill" class="status">✓ Normal</span>
+              <span id="gauge-level-pill" class="status" data-level="ok">✓ Normal</span>
             </div>
             <div class="gauge-wrap">
               <svg class="gauge-svg" viewBox="0 0 200 120" role="img" aria-label="Tacómetro semicircular de uso de RAM">
                 <defs>
                   <linearGradient id="gauge-grad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#4f7cff" />
-                    <stop offset="60%" stop-color="#a15cff" />
-                    <stop offset="100%" stop-color="#ff5f86" />
+                    <stop class="gauge-stop-1" offset="0%" />
+                    <stop class="gauge-stop-2" offset="60%" />
+                    <stop class="gauge-stop-3" offset="100%" />
                   </linearGradient>
                 </defs>
                 <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100" />
@@ -324,7 +342,7 @@
                 </tr>
               </thead>
               <tbody id="modules-full-tbody">
-                <tr><td colspan="7" style="text-align:center;color:var(--muted)">Consultando módulos de hardware...</td></tr>
+                <tr><td colspan="7" class="table-empty">Consultando módulos de hardware...</td></tr>
               </tbody>
             </table>
           </div>
@@ -345,7 +363,7 @@
               <small style="color:var(--muted)">Porcentaje de utilización · Eje Y 0-100% · Eje X Hora · Unidades %</small>
             </div>
             <div class="monitor-controls">
-              <span class="chip" id="monitor-label-2">Activo</span>
+              <span class="chip" id="monitor-label-2" data-level="info">Activo</span>
               <select id="monitor-interval-select" class="btn" style="padding:8px 10px">
                 <option value="1000">1 segundo</option>
                 <option value="2000" selected>2 segundos</option>
@@ -392,7 +410,7 @@
           </div>
           <div class="usage-head" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
             <strong>Utilización actual: <span id="monitor-percent-dup">--%</span></strong>
-            <span class="status" id="monitor-status">✓ Normal</span>
+            <span class="status" id="monitor-status" data-level="ok">✓ Normal</span>
           </div>
           <div class="progress"><span id="monitor-bar"></span></div>
           <p class="empty-note">Los datos se actualizan automáticamente mientras el monitoreo está activo.</p>
@@ -442,7 +460,7 @@
           </select>
 
           <label for="observations" style="display:block;margin:14px 0 7px;font-weight:600">Observaciones y notas del diagnóstico</label>
-          <textarea id="observations" rows="4" placeholder="Escribe aquí los resultados de la prueba, síntomas observados o conclusiones..." style="width:100%;resize:vertical;background:#0b1326;color:white;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit"></textarea>
+          <textarea id="observations" rows="4" placeholder="Escribe aquí los resultados de la prueba, síntomas observados o conclusiones..."></textarea>
 
           <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
             <button class="btn primary" id="save-observation">Guardar observación</button>
@@ -485,7 +503,7 @@
                 <small>Utilización actual</small>
                 <div class="summary-tile-row">
                   <strong id="report-percent">--%</strong>
-                  <span class="status" id="report-status-pill">Cargando…</span>
+                  <span class="status" id="report-status-pill" data-level="unknown">Cargando…</span>
                 </div>
               </div>
               <div class="summary-tile">
@@ -570,7 +588,7 @@
                 </tr>
               </thead>
               <tbody id="events-tbody">
-                <tr><td colspan="5" style="text-align:center;color:var(--muted)">Sin eventos registrados</td></tr>
+                <tr><td colspan="5" class="table-empty">Sin eventos registrados</td></tr>
               </tbody>
             </table>
           </div>
@@ -618,27 +636,67 @@
 
           <div class="report-row">
             <div>
-              <strong>Tema de interfaz</strong>
-              <small>Claro / Oscuro / Seguir sistema</small>
+              <strong>Efectos reducidos</strong>
+              <small>Desactiva desenfoques y sombras múltiples para ahorrar recursos</small>
+              <span id="reduced-effects-status" class="empty-note"></span>
             </div>
-            <select id="theme-selector" class="btn">
-              <option value="dark" selected>Oscuro</option>
-              <option value="light">Claro</option>
-              <option value="system">Sistema</option>
-            </select>
+            <button type="button" class="switch" id="btn-toggle-effects" role="switch" aria-checked="false">
+              <span class="switch-knob"></span>
+              <span class="switch-label">Desactivado</span>
+            </button>
           </div>
 
-          <div class="report-row">
+          <div class="report-row theme-row">
+            <div>
+              <strong>Tema de interfaz</strong>
+              <small>Elige el aspecto visual de RamTrace</small>
+            </div>
+            <div class="theme-field">
+              <div class="theme-grid" id="theme-selector" role="radiogroup" aria-label="Tema de interfaz">
+                <button type="button" class="theme-option" data-theme-choice="dark" role="radio" aria-checked="true">
+                  <span class="theme-preview" data-theme-preview="dark" aria-hidden="true">
+                    <span class="preview-sidebar"><i></i><i></i><i></i></span>
+                    <span class="preview-main">
+                      <span class="preview-title">Aa</span>
+                      <span class="preview-cards"><i class="preview-card"></i><i class="preview-card"></i><i class="preview-card"></i></span>
+                      <span class="preview-gauge"></span>
+                    </span>
+                  </span>
+                  <span class="theme-name">Oscuro <span class="theme-check">✓</span></span>
+                </button>
+                <button type="button" class="theme-option" data-theme-choice="light" role="radio" aria-checked="false">
+                  <span class="theme-preview" data-theme-preview="light" aria-hidden="true">
+                    <span class="preview-sidebar"><i></i><i></i><i></i></span>
+                    <span class="preview-main">
+                      <span class="preview-title">Aa</span>
+                      <span class="preview-cards"><i class="preview-card"></i><i class="preview-card"></i><i class="preview-card"></i></span>
+                      <span class="preview-gauge"></span>
+                    </span>
+                  </span>
+                  <span class="theme-name">Claro <span class="theme-check">✓</span></span>
+                </button>
+              </div>
+              <label class="theme-system">
+                <input type="checkbox" id="theme-system">
+                Seguir el tema del sistema (Oscuro / Claro)
+              </label>
+            </div>
+          </div>
+
+          <div class="report-row accent-row" id="accent-row">
             <div>
               <strong>Color de acento</strong>
               <small>Personalizar color principal de la interfaz</small>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn" data-accent="#7548ff" data-accent2="#a15cff" title="Violeta">Violeta</button>
-              <button class="btn" data-accent="#4f7cff" data-accent2="#5d9bff" title="Azul">Azul</button>
-              <button class="btn" data-accent="#22d3ee" data-accent2="#06b6d4" title="Cian">Cian</button>
-              <button class="btn" data-accent="#22c55e" data-accent2="#16a34a" title="Verde">Verde</button>
-              <input type="color" id="accent-picker" value="#7548ff" title="Personalizado" style="width:40px;height:40px;border:none;background:transparent;cursor:pointer">
+            <div>
+              <div class="accent-controls">
+                <button class="btn" data-accent="#7548ff" data-accent2="#7c3aed" title="Violeta">Violeta</button>
+                <button class="btn" data-accent="#4f7cff" data-accent2="#5d9bff" title="Azul">Azul</button>
+                <button class="btn" data-accent="#22d3ee" data-accent2="#06b6d4" title="Cian">Cian</button>
+                <button class="btn" data-accent="#22c55e" data-accent2="#16a34a" title="Verde">Verde</button>
+                <input type="color" id="accent-picker" value="#7548ff" title="Personalizado">
+              </div>
+              <small id="accent-disabled-note" class="empty-note" hidden>Este tema usa su propia paleta de colores.</small>
             </div>
           </div>
 
@@ -671,10 +729,10 @@
               </div>
               <div>
                 <div class="eyebrow">MONITOREA · ANALIZA · PROTEGE</div>
-                <h2 style="margin:4px 0 0;font-size:24px">Ram<span style="color:#a875ff">Trace</span></h2>
+                <h2 style="margin:4px 0 0;font-size:24px">Ram<span class="brand-accent">Trace</span></h2>
               </div>
             </div>
-            <p style="color:#c2cde8">
+            <p class="about-text">
               RamTrace es una aplicación de escritorio diseñada para consultar la capacidad física de memoria RAM de una computadora, observar su utilización en tiempo real y facilitar la documentación de un diagnóstico técnico.
             </p>
             <div class="detail-grid" style="margin-top:18px">
@@ -687,7 +745,7 @@
 
           <article class="card">
             <div class="card-title"><h2>Objetivo de la aplicación</h2></div>
-            <p style="color:#c2cde8">Presentar la información de memoria de forma clara y visual para que el usuario pueda comprender cuánta RAM tiene el equipo, cuánto está utilizando y cuánta permanece disponible.</p>
+            <p class="about-text">Presentar la información de memoria de forma clara y visual para que el usuario pueda comprender cuánta RAM tiene el equipo, cuánto está utilizando y cuánta permanece disponible.</p>
             <div class="recommend">
               <div class="check">✓</div>
               <div>
@@ -721,7 +779,7 @@
           </div>
           <div class="report-row">
             <div>Estado de desarrollo<small>Conectividad con el sistema</small></div>
-            <span class="chip" style="background:#0d654f;color:#71f5ca">● Versión nativa conectada a Windows</span>
+            <span class="chip chip-ok">● Versión nativa conectada a Windows</span>
           </div>
           <p class="empty-note">Esta aplicación de escritorio consulta métricas reales del sistema operativo Windows y la infraestructura de hardware CIM/WMI.</p>
         </article>
@@ -729,14 +787,6 @@
     </main>
   </div>
 
-  <script src="../../node_modules/three/build/three.module.js" type="module"></script>
-  <script src="../../node_modules/three/examples/jsm/loaders/GLTFLoader.js" type="module"></script>
-  <script type="module">
-    import * as THREE from '../../node_modules/three/build/three.module.js';
-    import { GLTFLoader } from '../../node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-    window.THREE = THREE;
-    window.THREE.GLTFLoader = GLTFLoader;
-  </script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -14,9 +14,14 @@
     hardware: null,
     metrics: null,
     values: [], // Array of recent utilization % (up to 60 samples)
-    theme: 'dark', // 'dark' | 'light' | 'system'
+    theme: 'dark', // 'dark' | 'light' | 'system' | 'lavender' | 'neon' | 'crimson'
     accent: '#7548ff',
-    accent2: '#a15cff'
+    accent2: '#7c3aed',
+    reducedEffects: false,
+    reducedEffectsPref: null,
+    reducedEffectsAuto: false,
+    autoSuppressed: false,
+    lowFpsStreak: 0
   };
 
   // Restore preferences from localStorage
@@ -44,6 +49,16 @@
 
     const savedAccent2 = localStorage.getItem('ramtrace_accent2');
     if (savedAccent2) state.accent2 = savedAccent2;
+
+    if (state.accent === '#7548ff' && state.accent2 === '#a15cff') {
+      state.accent2 = '#7c3aed';
+    }
+
+    const savedReducedEffects = localStorage.getItem('ramtrace_reduced_effects');
+    if (savedReducedEffects !== null) {
+      state.reducedEffects = savedReducedEffects === 'true';
+      state.reducedEffectsPref = state.reducedEffects;
+    }
   } catch (e) {
     console.warn('Could not read localStorage:', e);
   }
@@ -61,22 +76,229 @@
   };
 
   // --- Theme and Accent Initialization ---
+  const THEMES = ['dark', 'light', 'lavender', 'neon', 'crimson'];
+  const ACCENT_THEMES = ['dark', 'light'];
+
+  function prefersLightScheme() {
+    return Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+  }
+
+  function resolveTheme(theme) {
+    if (theme === 'system') return prefersLightScheme() ? 'light' : 'dark';
+    return THEMES.includes(theme) ? theme : 'dark';
+  }
+
+  function effectiveTheme() {
+    return resolveTheme(state.theme);
+  }
+
+  function hexToRgba(hex, alpha) {
+    let value = String(hex || '').replace('#', '');
+    if (value.length === 3) {
+      value = value.split('').map(function (c) { return c + c; }).join('');
+    }
+    if (!/^[0-9a-f]{6}$/i.test(value)) return 'rgba(117,72,255,' + alpha + ')';
+    const number = parseInt(value, 16);
+    return 'rgba(' + ((number >> 16) & 255) + ',' + ((number >> 8) & 255) + ',' + (number & 255) + ',' + alpha + ')';
+  }
+
+  function hexLuminance(hex) {
+    let value = String(hex || '').replace('#', '');
+    if (value.length === 3) {
+      value = value.split('').map(function (c) { return c + c; }).join('');
+    }
+    if (!/^[0-9a-f]{6}$/i.test(value)) return 0;
+    const number = parseInt(value, 16);
+    const channels = [(number >> 16) & 255, (number >> 8) & 255, number & 255];
+    const linear = channels.map(function (channel) {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  }
+
+  function contrastRatio(a, b) {
+    const lumA = hexLuminance(a);
+    const lumB = hexLuminance(b);
+    const light = Math.max(lumA, lumB);
+    const dark = Math.min(lumA, lumB);
+    return (light + 0.05) / (dark + 0.05);
+  }
+
+  function accentTextColor(colors) {
+    const candidates = ['#ffffff', '#0b1220'];
+    let best = candidates[0];
+    let bestScore = -1;
+    candidates.forEach(function (candidate) {
+      const score = Math.min.apply(null, colors.map(function (color) {
+        return contrastRatio(candidate, color);
+      }));
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    });
+    return best;
+  }
+
+  function clearAccentOverrides() {
+    const root = document.documentElement;
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-2');
+    root.style.removeProperty('--accent-glow');
+    root.style.removeProperty('--text-on-accent');
+    root.style.removeProperty('--btn-primary-text');
+    root.style.removeProperty('--nav-active-text');
+    root.style.removeProperty('--accent-contrast');
+  }
+
   function applyTheme() {
     const root = document.documentElement;
-    if (state.theme === 'system') {
-      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      root.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
-    } else {
-      root.setAttribute('data-theme', state.theme === 'light' ? 'light' : 'dark');
-    }
+    const theme = effectiveTheme();
+    root.setAttribute('data-theme', theme);
+    updateThemeControls(theme);
+    applyAccent();
+    syncAccentControls(theme);
   }
 
   function applyAccent() {
     const root = document.documentElement;
+    if (!ACCENT_THEMES.includes(effectiveTheme())) {
+      clearAccentOverrides();
+      return;
+    }
     if (state.accent) root.style.setProperty('--accent', state.accent);
     if (state.accent2) root.style.setProperty('--accent-2', state.accent2);
-    // Update glow based on accent
-    root.style.setProperty('--accent-glow', state.accent ? state.accent.replace('rgb', 'rgba').replace(')', ',0.33)') : 'rgba(117,72,255,0.33)');
+    root.style.setProperty('--accent-glow', hexToRgba(state.accent || '#7548ff', 0.33));
+    const onAccent = accentTextColor([state.accent || '#7548ff', state.accent2 || '#7c3aed']);
+    root.style.setProperty('--text-on-accent', onAccent);
+    root.style.setProperty('--btn-primary-text', onAccent);
+    root.style.setProperty('--nav-active-text', onAccent);
+    root.style.setProperty('--accent-contrast', onAccent);
+  }
+
+  function setTheme(theme) {
+    state.theme = theme;
+    try {
+      localStorage.setItem('ramtrace_theme', state.theme);
+    } catch (err) {}
+    applyTheme();
+    drawCharts();
+  }
+
+  function updateThemeControls(theme) {
+    document.querySelectorAll('[data-theme-choice]').forEach(function (card) {
+      card.setAttribute('aria-checked', String(card.dataset.themeChoice === theme));
+    });
+    const systemToggle = document.getElementById('theme-system');
+    if (systemToggle) systemToggle.checked = state.theme === 'system';
+  }
+
+  function syncAccentControls(theme) {
+    const enabled = ACCENT_THEMES.includes(theme);
+    document.querySelectorAll('[data-accent]').forEach(function (button) {
+      button.disabled = !enabled;
+      button.setAttribute('aria-pressed', String(button.dataset.accent === state.accent));
+    });
+    const picker = document.getElementById('accent-picker');
+    if (picker) picker.disabled = !enabled;
+    const row = document.getElementById('accent-row');
+    if (row) row.classList.toggle('is-disabled', !enabled);
+    const note = document.getElementById('accent-disabled-note');
+    if (note) note.hidden = enabled;
+  }
+
+  // --- Reduced Effects ---
+  function applyReducedEffects() {
+    const root = document.documentElement;
+    if (state.reducedEffects) {
+      root.setAttribute('data-reduced-effects', 'true');
+    } else {
+      root.removeAttribute('data-reduced-effects');
+    }
+    updateReducedEffectsUI();
+  }
+
+  function updateReducedEffectsUI() {
+    const button = document.getElementById('btn-toggle-effects');
+    const label = button ? button.querySelector('.switch-label') : null;
+    const status = document.getElementById('reduced-effects-status');
+    if (button) button.setAttribute('aria-checked', String(state.reducedEffects));
+    if (label) label.textContent = state.reducedEffects ? 'Activado' : 'Desactivado';
+    if (status) {
+      if (state.reducedEffectsAuto) {
+        status.textContent = 'Activado automáticamente por rendimiento bajo.';
+      } else if (state.reducedEffectsPref === false) {
+        status.textContent = 'Desactivado manualmente.';
+      } else if (state.reducedEffectsPref === true) {
+        status.textContent = 'Activado manualmente.';
+      } else {
+        status.textContent = '';
+      }
+    }
+  }
+
+  function setReducedEffects(enabled, options) {
+    const opts = options || {};
+    state.reducedEffects = Boolean(enabled);
+    if (opts.auto) {
+      state.reducedEffectsAuto = true;
+    } else {
+      state.reducedEffectsAuto = false;
+    }
+    if (opts.persist) {
+      state.reducedEffectsPref = state.reducedEffects;
+      try {
+        localStorage.setItem('ramtrace_reduced_effects', String(state.reducedEffects));
+      } catch (err) {}
+    }
+    applyReducedEffects();
+  }
+
+  function toggleReducedEffects() {
+    const next = !state.reducedEffects;
+    state.autoSuppressed = !next;
+    setReducedEffects(next, { persist: true });
+  }
+
+  function startFpsMonitor() {
+    if (state.reducedEffectsPref === false) return;
+
+    let frames = 0;
+    let windowStart = performance.now();
+
+    function sample(now) {
+      if (document.hidden) {
+        frames = 0;
+        windowStart = now;
+        requestAnimationFrame(sample);
+        return;
+      }
+
+      frames += 1;
+      const elapsed = now - windowStart;
+      if (elapsed >= 2000) {
+        const fps = (frames * 1000) / elapsed;
+        if (fps < 40) {
+          state.lowFpsStreak += 1;
+          if (
+            state.lowFpsStreak >= 2 &&
+            !state.reducedEffects &&
+            !state.autoSuppressed &&
+            state.reducedEffectsPref === null
+          ) {
+            setReducedEffects(true, { auto: true });
+          }
+        } else {
+          state.lowFpsStreak = 0;
+        }
+        frames = 0;
+        windowStart = now;
+      }
+      requestAnimationFrame(sample);
+    }
+
+    requestAnimationFrame(sample);
   }
 
   // --- Background Video Initialization ---
@@ -131,6 +353,28 @@
   });
 
   // --- Chart Drawing Engine (Canvas) ---
+  function themeColor(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function chartPalette() {
+    const bodyFont = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    return {
+      grid: themeColor('--chart-grid', '#24314c'),
+      gridVertical: themeColor('--chart-grid-vertical', '#1b2943'),
+      axis: themeColor('--chart-axis', '#9ba9ca'),
+      label: themeColor('--chart-label', '#8c9aba'),
+      line: themeColor('--chart-line', '#b66bff'),
+      lineGlow: themeColor('--chart-line-glow', 'rgba(156,92,255,.75)'),
+      areaFrom: themeColor('--chart-area-from', 'rgba(161,92,255,.46)'),
+      areaTo: themeColor('--chart-area-to', 'rgba(91,69,255,.02)'),
+      pointFill: themeColor('--chart-point-fill', '#ffffff'),
+      pointStroke: themeColor('--chart-point-stroke', '#9e63ff'),
+      font: bodyFont
+    };
+  }
+
   function drawChart(canvasId) {
     const c = document.getElementById(canvasId);
     if (!c || !c.offsetParent) return;
@@ -144,6 +388,9 @@
 
     const ctx = c.getContext('2d');
     ctx.scale(dpr, dpr);
+
+    const palette = chartPalette();
+    const chartFont = '11px ' + palette.font;
 
     const w = rect.width;
     const h = rect.height;
@@ -166,39 +413,39 @@
 
     if (!state.values || state.values.length === 0) {
       // Draw axes only
-      ctx.font = '11px Segoe UI, -apple-system, sans-serif';
+      ctx.font = chartFont;
       ctx.textAlign = 'right';
       for (let n = 0; n <= 100; n += 20) {
         const y = pad.t + ch * (1 - n / 100);
-        ctx.strokeStyle = '#24314c';
+        ctx.strokeStyle = palette.grid;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(pad.l, y);
         ctx.lineTo(w - pad.r, y);
         ctx.stroke();
-        ctx.fillStyle = '#9ba9ca';
+        ctx.fillStyle = palette.axis;
         ctx.fillText(n + '%', pad.l - 8, y + 4);
       }
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#8c9aba';
+      ctx.fillStyle = palette.label;
       ctx.fillText('Hora', pad.l + cw / 2, h - 10);
       return;
     }
 
     // Horizontal grid lines (0% to 100%)
-    ctx.font = '11px Segoe UI, -apple-system, sans-serif';
+    ctx.font = chartFont;
     ctx.textAlign = 'right';
 
     for (let n = 0; n <= 100; n += 20) {
       const y = pad.t + ch * (1 - n / 100);
-      ctx.strokeStyle = '#24314c';
+      ctx.strokeStyle = palette.grid;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(pad.l, y);
       ctx.lineTo(w - pad.r, y);
       ctx.stroke();
 
-      ctx.fillStyle = '#9ba9ca';
+      ctx.fillStyle = palette.axis;
       ctx.fillText(n + '%', pad.l - 8, y + 4);
     }
 
@@ -206,14 +453,14 @@
     const timeLabels = ['Hace 60s', '50s', '40s', '30s', '20s', '10s', 'Ahora'];
     for (let i = 0; i < 7; i++) {
       const x = pad.l + cw * (i / 6);
-      ctx.strokeStyle = '#1b2943';
+      ctx.strokeStyle = palette.gridVertical;
       ctx.beginPath();
       ctx.moveTo(x, pad.t);
       ctx.lineTo(x, pad.t + ch);
       ctx.stroke();
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#8c9aba';
+      ctx.fillStyle = palette.label;
       ctx.fillText(timeLabels[i], x, h - 10);
     }
 
@@ -233,17 +480,17 @@
     ctx.closePath();
 
     const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
-    grad.addColorStop(0, 'rgba(161, 92, 255, 0.46)');
-    grad.addColorStop(1, 'rgba(91, 69, 255, 0.02)');
+    grad.addColorStop(0, palette.areaFrom);
+    grad.addColorStop(1, palette.areaTo);
     ctx.fillStyle = grad;
     ctx.fill();
 
     // Line stroke
     ctx.beginPath();
     pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.strokeStyle = '#b66bff';
+    ctx.strokeStyle = palette.line;
     ctx.lineWidth = 2.8;
-    ctx.shadowColor = '#9c5cff';
+    ctx.shadowColor = palette.lineGlow;
     ctx.shadowBlur = 10;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -253,9 +500,9 @@
       if (i % Math.max(1, Math.floor(len / 12)) === 0 || i === len - 1) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, i === len - 1 ? 4.2 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = palette.pointFill;
         ctx.fill();
-        ctx.strokeStyle = '#9e63ff';
+        ctx.strokeStyle = palette.pointStroke;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -283,6 +530,12 @@
     return { level: 'normal', text: '✓ Normal', cls: 'ok' };
   }
 
+  function setStatusPill(el, stateInfo) {
+    if (!el) return;
+    el.dataset.level = stateInfo && stateInfo.cls ? stateInfo.cls : 'unknown';
+    el.textContent = stateInfo && stateInfo.text ? stateInfo.text : 'Sin datos';
+  }
+
   function updateGauge(percent, context) {
     const hasValue = !(percent === undefined || percent === null || isNaN(percent));
     const p = hasValue ? Math.min(100, Math.max(0, percent)) : null;
@@ -300,48 +553,37 @@
     const pctElMem = document.getElementById('gauge-percent');
     const levelPillMem = document.getElementById('gauge-level-pill');
     
-    function apply(elNeedle, elArc, elPct, elPill) {
+    function apply(elNeedle, elArc, elPct, elPill, normalNeedle, normalArc) {
       if (!elPct) return;
       if (!hasValue) {
         elPct.textContent = 'Sin datos';
         if (elNeedle) { elNeedle.style.transform = 'rotate(-90deg)'; elNeedle.style.transformOrigin = '100px 100px'; }
         if (elArc) { elArc.style.strokeDasharray = '0 ' + (2 * Math.PI * 80); elArc.style.stroke = 'var(--muted)'; }
-        if (elPill) {
-          elPill.textContent = 'Sin datos';
-          elPill.style.background = '#332916';
-          elPill.style.color = '#ffd05b';
-        }
+        setStatusPill(elPill, { cls: 'unknown', text: 'Sin datos' });
         return;
       }
       elPct.textContent = pRounded + '%';
+      const stateInfo = getRamState(p);
       if (elNeedle) {
         const angle = -90 + (p * 1.8);
         elNeedle.style.transform = `rotate(${angle}deg)`;
         elNeedle.style.transformOrigin = '100px 100px';
-        const st = getRamState(p);
-        if (st.cls === 'crit') elNeedle.style.stroke = '#ff5f86';
-        else if (st.cls === 'warn') elNeedle.style.stroke = '#ffc857';
-        else elNeedle.style.stroke = '#f4f6ff';
+        if (stateInfo.cls === 'crit') elNeedle.style.stroke = 'var(--crit)';
+        else if (stateInfo.cls === 'warn') elNeedle.style.stroke = 'var(--warn)';
+        else elNeedle.style.stroke = normalNeedle;
       }
       if (elArc) {
         const len = 2 * Math.PI * 80 * (p / 100);
         elArc.style.strokeDasharray = len + ' ' + (2 * Math.PI * 80);
-        const st = getRamState(p);
-        if (st.cls === 'crit') elArc.style.stroke = '#ff5f86';
-        else if (st.cls === 'warn') elArc.style.stroke = '#ffc857';
-        else elArc.style.stroke = 'url(#gauge-grad)';
+        if (stateInfo.cls === 'crit') elArc.style.stroke = 'var(--crit)';
+        else if (stateInfo.cls === 'warn') elArc.style.stroke = 'var(--warn)';
+        else elArc.style.stroke = normalArc;
       }
-      if (elPill) {
-        const st = getRamState(p);
-        elPill.textContent = st.text;
-        if (st.cls === 'crit') { elPill.style.background = '#762d49'; elPill.style.color = '#ffb4c7'; }
-        else if (st.cls === 'warn') { elPill.style.background = '#72511b'; elPill.style.color = '#ffe08a'; }
-        else { elPill.style.background = '#0d654f'; elPill.style.color = '#71f5ca'; }
-      }
+      setStatusPill(elPill, stateInfo);
     }
-    
-    apply(needleHome, arcHome, pctElHome, levelPillHome);
-    apply(needleMem, arcMem, pctElMem, levelPillMem);
+
+    apply(needleHome, arcHome, pctElHome, levelPillHome, 'var(--gauge-3)', 'url(#home-gauge-grad)');
+    apply(needleMem, arcMem, pctElMem, levelPillMem, 'var(--gauge-needle)', 'url(#gauge-grad)');
   }
 
   function updateRealtimeUI(metrics) {
@@ -374,18 +616,12 @@
     const statusPill = document.getElementById('status-pill');
     if (statusPill) {
       if (!hasValue) {
-        statusPill.textContent = 'Sin datos';
-        statusPill.style.background = '#332916';
-        statusPill.style.color = '#ffd05b';
+        setStatusPill(statusPill, { cls: 'unknown', text: 'Sin datos' });
       } else {
         const st = getRamState(current);
-        let icon = st.cls === 'crit' ? '! ' : (st.cls === 'warn' ? '⚠ ' : '✓ ');
-        let bg = st.cls === 'crit' ? '#762d49' : (st.cls === 'warn' ? '#72511b' : '#0d654f');
-        let color = st.cls === 'crit' ? '#ffb4c7' : (st.cls === 'warn' ? '#ffe08a' : '#71f5ca');
+        const icon = st.cls === 'crit' ? '! ' : (st.cls === 'warn' ? '⚠ ' : '✓ ');
         const statusText = metrics.statusText || (st.cls === 'crit' ? 'Muy elevado' : (st.cls === 'warn' ? 'Elevado' : 'Normal'));
-        statusPill.textContent = icon + statusText;
-        statusPill.style.background = bg;
-        statusPill.style.color = color;
+        setStatusPill(statusPill, { cls: st.cls, text: icon + statusText });
       }
     }
 
@@ -424,19 +660,12 @@
     const monStatus = document.getElementById('monitor-status');
     if (monStatus) {
       if (!hasValue) {
-        monStatus.textContent = 'Sin datos';
-        monStatus.style.background = '#332916';
-        monStatus.style.color = '#ffd05b';
+        setStatusPill(monStatus, { cls: 'unknown', text: 'Sin datos' });
       } else if (statusPill) {
+        monStatus.dataset.level = statusPill.dataset.level;
         monStatus.textContent = statusPill.textContent;
-        monStatus.style.background = statusPill.style.background;
-        monStatus.style.color = statusPill.style.color;
       } else {
-        const st = getRamState(current);
-        monStatus.textContent = st.text;
-        if (st.cls === 'crit') { monStatus.style.background = '#762d49'; monStatus.style.color = '#ffb4c7'; }
-        else if (st.cls === 'warn') { monStatus.style.background = '#72511b'; monStatus.style.color = '#ffe08a'; }
-        else { monStatus.style.background = '#0d654f'; monStatus.style.color = '#71f5ca'; }
+        setStatusPill(monStatus, getRamState(current));
       }
     }
 
@@ -448,6 +677,10 @@
     setElText('report-used-ram', metrics.usedFormatted || '--');
     setElText('report-free-ram', metrics.freeFormatted || '--');
     setElText('report-last-time', new Date().toLocaleString('es-PA'));
+    setStatusPill(
+      document.getElementById('report-status-pill'),
+      hasValue ? getRamState(current) : { cls: 'unknown', text: 'Sin datos' }
+    );
 
     // Redraw graphs with new data point
     drawCharts();
@@ -539,7 +772,7 @@
     }
 
     if (!modules || modules.length === 0) {
-      const emptyRow = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No se detectaron módulos o el acceso WMI está restringido.</td></tr>';
+      const emptyRow = '<tr><td colspan="7" class="table-empty">No se detectaron módulos o el acceso WMI está restringido.</td></tr>';
       if (homeTbody) homeTbody.innerHTML = emptyRow;
       if (fullTbody) fullTbody.innerHTML = emptyRow;
       return;
@@ -567,8 +800,8 @@
           <td>${escapeHtml(m.manufacturer)}</td>
           <td>${escapeHtml(m.type)}</td>
           <td>${escapeHtml(m.speed)}</td>
-          <td><code style="color:#ad8aff;font-size:11px">${escapeHtml(m.partNumber)}</code></td>
-          <td><span class="chip" style="background:#0d654f;color:#71f5ca">● ${escapeHtml(m.status)}</span></td>
+          <td><code class="part-number">${escapeHtml(m.partNumber)}</code></td>
+          <td><span class="chip chip-ok">● ${escapeHtml(m.status)}</span></td>
         </tr>
       `).join('');
     }
@@ -604,8 +837,7 @@
       const el = document.getElementById(id);
       if (el) {
         el.textContent = text;
-        el.style.background = isActive ? '#202b49' : '#332916';
-        el.style.color = isActive ? '#c9d5f7' : '#ffd05b';
+        el.dataset.level = isActive ? 'info' : 'warn';
       }
     });
 
@@ -698,7 +930,7 @@
         localStorage.setItem('ramtrace_test_result', state.testResult);
         if (saveMsg) {
           saveMsg.textContent = '✓ Observación guardada correctamente.';
-          saveMsg.style.color = 'var(--green)';
+          saveMsg.style.color = 'var(--ok-text)';
           setTimeout(() => { saveMsg.textContent = ''; }, 3500);
         }
         if (reportTestEl) reportTestEl.textContent = state.testResult;
@@ -719,7 +951,7 @@
       if (res.success) {
         if (mdschedMsg) {
           mdschedMsg.textContent = '✓ Herramienta Diagnóstico de memoria de Windows iniciada.';
-          mdschedMsg.style.color = 'var(--green)';
+          mdschedMsg.style.color = 'var(--ok-text)';
         }
       } else if (res.canceled) {
         if (mdschedMsg) {
@@ -729,7 +961,7 @@
       } else {
         if (mdschedMsg) {
           mdschedMsg.textContent = 'Error: ' + res.error;
-          mdschedMsg.style.color = 'var(--red)';
+          mdschedMsg.style.color = 'var(--crit-text)';
         }
       }
       setTimeout(() => { if (mdschedMsg) mdschedMsg.textContent = ''; }, 5000);
@@ -790,7 +1022,7 @@
         if (res && res.success) {
           if (statusMsg) {
             statusMsg.textContent = `✓ ${exportType === 'events' ? 'Registro de eventos' : 'Reporte'} guardado con éxito en: ${res.filePath}`;
-            statusMsg.style.color = 'var(--green)';
+            statusMsg.style.color = 'var(--ok-text)';
           }
           try {
             if (window.ramtraceApi.logEvent) {
@@ -810,7 +1042,7 @@
         } else {
           if (statusMsg) {
             statusMsg.textContent = `Error al guardar: ${res && res.error ? res.error : 'Error desconocido'}`;
-            statusMsg.style.color = 'var(--red)';
+            statusMsg.style.color = 'var(--crit-text)';
           }
           try {
             if (window.ramtraceApi.logEvent) {
@@ -821,7 +1053,7 @@
       } catch (e) {
         if (statusMsg) {
           statusMsg.textContent = 'Error al generar/guardar el reporte.';
-          statusMsg.style.color = 'var(--red)';
+          statusMsg.style.color = 'var(--crit-text)';
         }
       }
     } else {
@@ -903,19 +1135,36 @@
   }
 
   // Theme selector
-  const themeSelector = document.getElementById('theme-selector');
-  if (themeSelector) {
-    themeSelector.value = state.theme;
-    themeSelector.addEventListener('change', (e) => {
-      state.theme = e.target.value;
-      try { localStorage.setItem('ramtrace_theme', state.theme); } catch (err) {}
-      applyTheme();
+  document.querySelectorAll('[data-theme-choice]').forEach(card => {
+    card.addEventListener('click', () => setTheme(card.dataset.themeChoice));
+  });
+
+  const themeSystem = document.getElementById('theme-system');
+  if (themeSystem) {
+    themeSystem.checked = state.theme === 'system';
+    themeSystem.addEventListener('change', () => {
+      setTheme(themeSystem.checked ? 'system' : resolveTheme(state.theme));
     });
+  }
+
+  const systemThemeQuery = window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: light)')
+    : null;
+  if (systemThemeQuery) {
+    const onSystemThemeChange = () => {
+      if (state.theme === 'system') {
+        applyTheme();
+        drawCharts();
+      }
+    };
+    if (systemThemeQuery.addEventListener) systemThemeQuery.addEventListener('change', onSystemThemeChange);
+    else if (systemThemeQuery.addListener) systemThemeQuery.addListener(onSystemThemeChange);
   }
 
   // Accent selectors
   document.querySelectorAll('[data-accent]').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.disabled) return;
       state.accent = btn.getAttribute('data-accent');
       state.accent2 = btn.getAttribute('data-accent2') || btn.getAttribute('data-accent');
       try {
@@ -923,13 +1172,16 @@
         localStorage.setItem('ramtrace_accent2', state.accent2);
       } catch (err) {}
       applyAccent();
+      syncAccentControls(effectiveTheme());
+      drawCharts();
     });
   });
 
   const accentPicker = document.getElementById('accent-picker');
   if (accentPicker) {
-    accentPicker.value = state.accent;
+    accentPicker.value = state.accent || '#7548ff';
     accentPicker.addEventListener('input', (e) => {
+      if (accentPicker.disabled) return;
       state.accent = e.target.value;
       state.accent2 = e.target.value;
       try {
@@ -937,7 +1189,14 @@
         localStorage.setItem('ramtrace_accent2', state.accent2);
       } catch (err) {}
       applyAccent();
+      syncAccentControls(effectiveTheme());
+      drawCharts();
     });
+  }
+
+  const effectsToggle = document.getElementById('btn-toggle-effects');
+  if (effectsToggle) {
+    effectsToggle.addEventListener('click', toggleReducedEffects);
   }
 
   const refreshHwBtn = document.getElementById('btn-refresh-hardware');
@@ -951,12 +1210,12 @@
           updateHardwareUI(res.data);
           if (refreshMsg) {
             refreshMsg.textContent = '✓ Hardware actualizado.';
-            refreshMsg.style.color = 'var(--green)';
+            refreshMsg.style.color = 'var(--ok-text)';
           }
         } else {
           if (refreshMsg) {
             refreshMsg.textContent = 'Error al consultar hardware.';
-            refreshMsg.style.color = 'var(--red)';
+            refreshMsg.style.color = 'var(--crit-text)';
           }
         }
         setTimeout(() => { if (refreshMsg) refreshMsg.textContent = ''; }, 3500);
@@ -979,7 +1238,8 @@
   // --- Initial Setup and Event Subscriptions ---
   async function initApp() {
     applyTheme();
-    applyAccent();
+    applyReducedEffects();
+    startFpsMonitor();
     initVideo();
     initRamVisual();
 
