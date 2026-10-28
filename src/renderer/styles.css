@@ -8,13 +8,18 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--bg-pattern);
+  background-repeat: repeat;
+  background-size: var(--bg-pattern-size);
+  background-attachment: fixed;
+  background-blend-mode: var(--bg-pattern-blend);
   color: var(--text);
   font: 14px/1.45 var(--font-body);
   min-height: 100vh;
   isolation: isolate;
   user-select: none;
-  transition: background 0.25s ease, color 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1,
@@ -1252,7 +1257,11 @@ tr:last-child td {
   aspect-ratio: 16/9;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--bg-pattern);
+  background-repeat: repeat;
+  background-size: 90px auto;
+  background-blend-mode: var(--bg-pattern-blend);
   border: var(--border-width) solid var(--border-color);
 }
 
@@ -1613,6 +1622,28 @@ select.btn option {
 }
 
 /* Tema Lavanda suave */
+[data-theme="lavender"] .bg-video {
+  display: none;
+}
+
+[data-theme="lavender"] .topbar {
+  padding: 16px 18px;
+  border: var(--border-width) solid rgba(109, 74, 168, 0.16);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(255, 252, 255, 0.92), rgba(246, 240, 252, 0.88));
+  box-shadow: 0 12px 30px rgba(86, 60, 120, 0.08);
+}
+
+[data-theme="lavender"] .footer-note {
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px auto 0;
+  padding: 6px 12px;
+  border: var(--border-width) solid rgba(109, 74, 168, 0.14);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 252, 255, 0.9);
+}
+
 [data-theme="lavender"] .card {
   position: relative;
 }

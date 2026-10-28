@@ -4,6 +4,9 @@
   --title-weight: 800;
   --title-tracking: -0.6px;
   --section-title-size: 22px;
+  --bg-pattern: none;
+  --bg-pattern-size: 380px auto;
+  --bg-pattern-blend: normal;
 }
 
 [data-theme="dark"],
@@ -364,14 +367,15 @@
 [data-theme-preview="lavender"] {
   color-scheme: light;
 
-  --bg: #f4effb;
+  --bg: #8b82d6;
+  --bg-pattern: url("../assets/patterns/lavanda.webp");
+  --bg-pattern-blend: multiply;
   --video-overlay:
-    radial-gradient(circle at 18% 4%, rgba(196, 181, 253, 0.38), transparent 36%),
-    radial-gradient(circle at 84% 10%, rgba(244, 194, 224, 0.26), transparent 38%),
-    radial-gradient(circle at 55% 100%, rgba(191, 219, 254, 0.2), transparent 46%),
-    linear-gradient(180deg, rgba(250, 247, 255, 0.92) 0%, rgba(242, 236, 250, 0.94) 100%);
-  --video-opacity: 0.48;
-  --video-filter: saturate(0.82) contrast(1.01) brightness(1.08);
+    radial-gradient(circle at 18% 4%, rgba(255, 255, 255, 0.16), transparent 38%),
+    radial-gradient(circle at 84% 10%, rgba(255, 255, 255, 0.1), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(66, 48, 102, 0.08) 100%);
+  --video-opacity: 0;
+  --video-filter: none;
 
   --panel: #fffcff;
   --panel-2: #f6f0fc;
@@ -472,7 +476,7 @@
   --bullets-text: #5d4b73;
   --detail-bg: #faf6ff;
   --detail-border: #ebe2f4;
-  --footer-text: #6b5b7f;
+  --footer-text: #5d4b73;
 
   --ok: #2f7d68;
   --ok-bg: #e1f4ed;
