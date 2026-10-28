@@ -1,9 +1,45 @@
-:root{--bg:#080d1c;--panel:#0e162a;--panel2:#121d35;--line:#263554;--text:#f4f6ff;--muted:#9ba9ca;--purple:#7548ff;--purple2:#a15cff;--blue:#4f7cff;--green:#26d6a0;--yellow:#ffc857;--red:#ff5f86}
+:root{
+  --bg:#080d1c;
+  --panel:#0e162a;
+  --panel2:#121d35;
+  --line:#263554;
+  --text:#f4f6ff;
+  --muted:#9ba9ca;
+  --purple:#7548ff;
+  --purple2:#a15cff;
+  --blue:#4f7cff;
+  --green:#26d6a0;
+  --yellow:#ffc857;
+  --red:#ff5f86;
+  --accent:#7548ff;
+  --accent-2:#a15cff;
+  --accent-glow:rgba(117,72,255,0.33);
+}
+
+[data-theme="light"]{
+  --bg:#f7f9fc;
+  --panel:#ffffff;
+  --panel2:#f0f4fa;
+  --line:#d7deea;
+  --text:#1a2238;
+  --muted:#5a6b8a;
+  --purple:#6b4dff;
+  --purple2:#8a5bff;
+  --blue:#3d6bff;
+  --green:#16a085;
+  --yellow:#d97706;
+  --red:#dc2626;
+  --accent:#6b4dff;
+  --accent-2:#8a5bff;
+  --accent-glow:rgba(107,77,255,0.18);
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif;min-height:100vh;isolation:isolate;user-select:none}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif;min-height:100vh;isolation:isolate;user-select:none;transition:background .25s ease,color .25s ease}
 .bg-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.95;pointer-events:none;filter:saturate(1.18) contrast(1.1)}
 .bg-video.hidden{display:none}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 55% -10%,rgba(90,60,200,.22),transparent 60%),linear-gradient(180deg,rgba(5,9,22,.52) 0%,rgba(4,7,18,.62) 100%)}
+[data-theme="light"] body::before{background:radial-gradient(ellipse at 55% -10%,rgba(107,77,255,.12),transparent 60%),linear-gradient(180deg,rgba(247,249,252,.86) 0%,rgba(240,244,250,.92) 100%)}
+[data-theme="light"] .bg-video{filter:saturate(1.08) contrast(1.02);opacity:.6}
 .app{position:relative;z-index:0}
 button{font:inherit;cursor:pointer}.app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
 .sidebar{border-right:1px solid rgba(120,140,200,.28);padding:24px 16px;background:linear-gradient(180deg,rgba(8,13,28,.72),rgba(8,13,28,.62));backdrop-filter:blur(10px) saturate(1.05);-webkit-backdrop-filter:blur(10px) saturate(1.05);display:flex;flex-direction:column;gap:25px}

@@ -13,7 +13,10 @@
     observations: '',
     hardware: null,
     metrics: null,
-    values: [] // Array of recent utilization % (up to 60 samples)
+    values: [], // Array of recent utilization % (up to 60 samples)
+    theme: 'dark', // 'dark' | 'light' | 'system'
+    accent: '#7548ff',
+    accent2: '#a15cff'
   };
 
   // Restore preferences from localStorage
@@ -32,6 +35,15 @@
 
     const savedTest = localStorage.getItem('ramtrace_test_result');
     if (savedTest) state.testResult = savedTest;
+
+    const savedTheme = localStorage.getItem('ramtrace_theme');
+    if (savedTheme) state.theme = savedTheme;
+
+    const savedAccent = localStorage.getItem('ramtrace_accent');
+    if (savedAccent) state.accent = savedAccent;
+
+    const savedAccent2 = localStorage.getItem('ramtrace_accent2');
+    if (savedAccent2) state.accent2 = savedAccent2;
   } catch (e) {
     console.warn('Could not read localStorage:', e);
   }
@@ -47,6 +59,25 @@
     configuracion: ['Configuración', 'Preferencias operativas y visuales de la aplicación.'],
     acerca: ['Acerca de RamTrace', 'Información general, propósito y características de la aplicación.']
   };
+
+  // --- Theme and Accent Initialization ---
+  function applyTheme() {
+    const root = document.documentElement;
+    if (state.theme === 'system') {
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      root.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    } else {
+      root.setAttribute('data-theme', state.theme === 'light' ? 'light' : 'dark');
+    }
+  }
+
+  function applyAccent() {
+    const root = document.documentElement;
+    if (state.accent) root.style.setProperty('--accent', state.accent);
+    if (state.accent2) root.style.setProperty('--accent-2', state.accent2);
+    // Update glow based on accent
+    root.style.setProperty('--accent-glow', state.accent ? state.accent.replace('rgb', 'rgba').replace(')', ',0.33)') : 'rgba(117,72,255,0.33)');
+  }
 
   // --- Background Video Initialization ---
   const bgVideo = document.getElementById('bg-video');
@@ -867,6 +898,44 @@
     });
   }
 
+  // Theme selector
+  const themeSelector = document.getElementById('theme-selector');
+  if (themeSelector) {
+    themeSelector.value = state.theme;
+    themeSelector.addEventListener('change', (e) => {
+      state.theme = e.target.value;
+      try { localStorage.setItem('ramtrace_theme', state.theme); } catch (err) {}
+      applyTheme();
+    });
+  }
+
+  // Accent selectors
+  document.querySelectorAll('[data-accent]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.accent = btn.getAttribute('data-accent');
+      state.accent2 = btn.getAttribute('data-accent2') || btn.getAttribute('data-accent');
+      try {
+        localStorage.setItem('ramtrace_accent', state.accent);
+        localStorage.setItem('ramtrace_accent2', state.accent2);
+      } catch (err) {}
+      applyAccent();
+    });
+  });
+
+  const accentPicker = document.getElementById('accent-picker');
+  if (accentPicker) {
+    accentPicker.value = state.accent;
+    accentPicker.addEventListener('input', (e) => {
+      state.accent = e.target.value;
+      state.accent2 = e.target.value;
+      try {
+        localStorage.setItem('ramtrace_accent', state.accent);
+        localStorage.setItem('ramtrace_accent2', state.accent2);
+      } catch (err) {}
+      applyAccent();
+    });
+  }
+
   const refreshHwBtn = document.getElementById('btn-refresh-hardware');
   const refreshMsg = document.getElementById('refresh-hw-msg');
   if (refreshHwBtn) {
@@ -905,6 +974,8 @@
 
   // --- Initial Setup and Event Subscriptions ---
   async function initApp() {
+    applyTheme();
+    applyAccent();
     initVideo();
     initRamVisual();
 

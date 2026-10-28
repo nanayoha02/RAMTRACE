@@ -618,10 +618,28 @@
 
           <div class="report-row">
             <div>
-              <strong>Estilo de interfaz</strong>
-              <small>Tema visual oficial de RamTrace</small>
+              <strong>Tema de interfaz</strong>
+              <small>Claro / Oscuro / Seguir sistema</small>
             </div>
-            <span class="chip">Oscuro · Deep Navy & Violet</span>
+            <select id="theme-selector" class="btn">
+              <option value="dark" selected>Oscuro</option>
+              <option value="light">Claro</option>
+              <option value="system">Sistema</option>
+            </select>
+          </div>
+
+          <div class="report-row">
+            <div>
+              <strong>Color de acento</strong>
+              <small>Personalizar color principal de la interfaz</small>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn" data-accent="#7548ff" data-accent2="#a15cff" title="Violeta">Violeta</button>
+              <button class="btn" data-accent="#4f7cff" data-accent2="#5d9bff" title="Azul">Azul</button>
+              <button class="btn" data-accent="#22d3ee" data-accent2="#06b6d4" title="Cian">Cian</button>
+              <button class="btn" data-accent="#22c55e" data-accent2="#16a34a" title="Verde">Verde</button>
+              <input type="color" id="accent-picker" value="#7548ff" title="Personalizado" style="width:40px;height:40px;border:none;background:transparent;cursor:pointer">
+            </div>
           </div>
 
           <div class="report-row">
